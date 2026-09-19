@@ -336,6 +336,21 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
 }
 
 @media (prefers-reduced-motion:reduce){ .links,.burger span{transition:none} }
+
+/* ── ENTRANCE CORRECTION (outside the spec, deliberately last) ────
+   Tiers C and E centre the two labels with transform:translateY(-50%),
+   but ent-rise resolves transform to `none`, so those labels would sit
+   half a line low for the length of the entrance and snap up when the
+   classes are removed (measured -7.4px at 540x700, -8.1px at 800x600).
+   Fade them in there instead: identical delay, duration and easing, and
+   an identical authored static state. Tier F gives the labels no
+   transform, so it keeps the RISE.                                    */
+@media (max-width:579px), (max-height:620px){
+  .anim.play .label.label-l,.anim.play .label.label-r{animation-name:ent-fade}
+}
+@media (max-width:500px){
+  .anim.play .label.label-l,.anim.play .label.label-r{animation-name:ent-rise}
+}
 </style>
 </head>
 <body>
