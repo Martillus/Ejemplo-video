@@ -425,6 +425,12 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
 (function(){
   'use strict';
 
+  /* Reduced motion hides every clip in favour of the still, so fetching 10s
+     of 720p video is pure waste on someone who can never see it. */
+  var REDUCED = false;
+  try { REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+  catch(e){}
+
   var CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/';
   var ORDER = ['earth','venus','mars'];
 
@@ -467,6 +473,21 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
 
   var featured = null;
 
+  /* The featured clip carries its src in the markup for the fastest first
+     paint; park it on data-src so a reduced-motion visitor downloads nothing
+     while the lazy path above can still restore it. */
+  if(REDUCED){
+    ORDER.forEach(function(p){
+      var v = clips[p];
+      if(v && v.getAttribute('src')){
+        v.setAttribute('data-src', v.getAttribute('src'));
+        v.removeAttribute('src');
+        v.preload = 'none';
+        v.load();
+      }
+    });
+  }
+
   function show(next){
     if(!DATA[next] || next === featured) return;
     featured = next;
@@ -476,7 +497,7 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
       var v = clips[p];
       if(!v) return;
       if(p === next){
-        if(!v.getAttribute('src') && v.getAttribute('data-src')){
+        if(!REDUCED && !v.getAttribute('src') && v.getAttribute('data-src')){
           v.preload = 'auto';
           v.src = v.getAttribute('data-src');
         }
@@ -512,6 +533,7 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
   }
 
   function warm(planet){
+    if(REDUCED) return;
     var v = clips[planet];
     if(!v) return;
     if(!v.getAttribute('src') && v.getAttribute('data-src')){
