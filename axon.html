@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Axon deploys digital workers that run the browser-based processes your team does by hand: portal filing, invoice posting, nightly reconciliation.">
+<title>Axon — Digital Workers for Mundane Workflows</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+          display: ["Instrument Serif", "Georgia", "Times New Roman", "serif"]
+        }
+      }
+    }
+  };
+</script>
+
+<style>
+  /* index.css reset */
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: #1B133C;
+    margin: 0;
+    background: #FBFAFD;
+  }
+
+  /* Give the arbitrary Tailwind family a real fallback stack. */
+  .font-\[\'Instrument_Serif\'\] {
+    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif !important;
+  }
+
+  /* Painted backdrop that sits under the hero video: the page still reads as
+     designed while the clip buffers, or anywhere the clip cannot be fetched. */
+  .video-fallback {
+    background:
+      radial-gradient(58% 48% at 18% 12%, #FFE3CE 0%, rgba(255, 227, 206, 0) 62%),
+      radial-gradient(52% 44% at 82% 8%,  #DCD7FB 0%, rgba(220, 215, 251, 0) 64%),
+      radial-gradient(64% 56% at 64% 88%, #CFE9E4 0%, rgba(207, 233, 228, 0) 66%),
+      radial-gradient(70% 60% at 8% 92%,  #F6DCE9 0%, rgba(246, 220, 233, 0) 62%),
+      linear-gradient(180deg, #FDFCFA 0%, #F2EFFA 100%);
+  }
+
+  @keyframes axon-drift {
+    from { transform: translate3d(-1.5%, -1%, 0) scale(1.06); }
+    to   { transform: translate3d(1.5%,  1%, 0) scale(1.12); }
+  }
+  .video-fallback > span {
+    animation: axon-drift 24s ease-in-out infinite alternate;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .video-fallback > span { animation: none; }
+  }
+
+  /* Section rules stay hairline so the type keeps the hierarchy. */
+  .hairline { box-shadow: inset 0 1px 0 rgba(27, 19, 60, 0.08); }
+</style>
+</head>
+<body>
+
+<!-- ─────────────────────────  HERO  ───────────────────────── -->
+<section id="top" class="relative h-screen w-full overflow-hidden flex flex-col">
+
+  <!-- Background video -->
+  <div class="absolute inset-0 z-0">
+    <div class="video-fallback absolute inset-0 overflow-hidden">
+      <span class="absolute -inset-[12%] block video-fallback"></span>
+    </div>
+    <video
+      class="relative w-full h-[130%] object-cover object-top"
+      autoplay muted loop playsinline preload="auto"
+      src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260714_113715_c7e0daa0-8bdd-4486-a2da-040901f8f0ea.mp4"></video>
+  </div>
+
+  <!-- Navigation -->
+  <header class="relative z-10 flex justify-center pt-4 md:pt-6 px-4">
+    <nav class="flex items-center gap-4 md:gap-8 bg-white/70 backdrop-blur-md rounded-xl px-4 md:px-6 py-3 shadow-sm">
+      <a href="#top" class="flex items-center gap-2" aria-label="Axon home">
+        <svg width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+          <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z" fill="#1B133C"></path>
+          <path d="M 256 128 L 128 128 L 0 0 L 128 0 Z" fill="#1B133C"></path>
+        </svg>
+        <span class="text-base font-semibold tracking-tight text-[#1B133C]">Axon</span>
+      </a>
+      <ul class="hidden sm:flex items-center gap-5 md:gap-7">
+        <li><a href="#workers" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Features</a></li>
+        <li><a href="#plans" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Plans</a></li>
+        <li><a href="#security" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Security</a></li>
+        <li><a href="#about" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">About</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Hero content -->
+  <div class="relative z-10 mt-8 md:mt-16 flex flex-col items-center text-center px-4">
+
+    <div class="mb-6 inline-flex items-center gap-2 rounded-xl border border-[#1B133C]/10 bg-white/70 backdrop-blur-sm px-4 py-2 text-sm font-medium">
+      <span class="bg-orange-500 rounded w-5 h-5 flex items-center justify-center text-white font-bold text-xs leading-none" aria-hidden="true">Y</span>
+      <span class="text-[#1B133C]">Funded by Y Combinator</span>
+    </div>
+
+    <h1 class="font-['Instrument_Serif'] text-4xl sm:text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight text-[#1B133C] max-w-4xl">
+      <span class="block">Deploy digital workers</span>
+      <span class="block">for mundane workflows</span>
+    </h1>
+
+    <p class="mt-5 sm:mt-6 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-[#1B133C]/70">
+      Eliminate your tedious browser work and 10x your team's capacity. Put intelligent agents on every
+      routine process so you grow faster and deliver more for clients — effortlessly.
+    </p>
+
+    <a href="#early-access" class="mt-7 sm:mt-8 inline-block rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3 sm:py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.2)] transition-all duration-300">
+      Get Early Access
+    </a>
+
+  </div>
+</section>
+
+<!-- ─────────────────  WHAT THE WORKERS RUN  ───────────────── -->
+<section id="workers" class="bg-[#FBFAFD] px-4 py-20 md:py-28">
+  <div class="mx-auto max-w-5xl">
+
+    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">The work nobody wants</p>
+    <h2 class="mt-3 font-['Instrument_Serif'] text-3xl md:text-5xl leading-[1.02] tracking-tight text-[#1B133C] max-w-2xl text-balance">
+      Every process that lives inside a browser tab
+    </h2>
+    <p class="mt-4 max-w-2xl text-sm md:text-base leading-relaxed text-[#1B133C]/70">
+      A worker signs in to the same portals your team does, follows the same steps, and writes back to
+      the same systems of record. No API required on the other side.
+    </p>
+
+    <div class="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[#1B133C]/10 bg-[#1B133C]/10 sm:grid-cols-2 lg:grid-cols-3">
+
+      <article class="bg-white p-6 md:p-8">
+        <h3 class="font-['Instrument_Serif'] text-2xl leading-snug text-[#1B133C]">Portal filing</h3>
+        <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+          Claims, permits, carrier and vendor portals. The worker keys the submission, clears the
+          validation errors and files the confirmation number back to your record.
+        </p>
+        <p class="mt-6 text-xs font-medium tabular-nums text-[#1B133C]/45">Median 41s per filing · 1,284 runs last week</p>
+      </article>
+
+      <article class="bg-white p-6 md:p-8">
+        <h3 class="font-['Instrument_Serif'] text-2xl leading-snug text-[#1B133C]">Inbox to system of record</h3>
+        <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+          Invoices, POs and remittances arrive as PDF. The worker reads them, matches the line items and
+          posts to your ERP — flagging only what it cannot match.
+        </p>
+        <p class="mt-6 text-xs font-medium tabular-nums text-[#1B133C]/45">96.4% posted straight through · 3.6% escalated</p>
+      </article>
+
+      <article class="bg-white p-6 md:p-8">
+        <h3 class="font-['Instrument_Serif'] text-2xl leading-snug text-[#1B133C]">Reconciliation</h3>
+        <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+          Pull the exports, cross-check the ledgers, chase the variances. The worker runs it nightly and
+          leaves a diff your controller can sign off in a morning.
+        </p>
+        <p class="mt-6 text-xs font-medium tabular-nums text-[#1B133C]/45">Nightly at 02:00 · 11 variances surfaced</p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────  HOW IT SHIPS  ───────────────────── -->
+<section id="deploy" class="hairline bg-white px-4 py-20 md:py-28">
+  <div class="mx-auto max-w-5xl">
+
+    <h2 class="font-['Instrument_Serif'] text-3xl md:text-5xl leading-[1.02] tracking-tight text-[#1B133C] max-w-2xl text-balance">
+      From a screen recording to a worker on shift
+    </h2>
+
+    <ol class="mt-12 grid gap-10 md:grid-cols-3 md:gap-12">
+
+      <li>
+        <span class="text-xs font-semibold tabular-nums text-orange-500">Step 01</span>
+        <h3 class="mt-2 text-base font-semibold text-[#1B133C]">Record the process once</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[#1B133C]/70">
+          Someone who already does the job walks through it in the browser. Axon turns that session into
+          a draft procedure, in steps you can read.
+        </p>
+      </li>
+
+      <li>
+        <span class="text-xs font-semibold tabular-nums text-orange-500">Step 02</span>
+        <h3 class="mt-2 text-base font-semibold text-[#1B133C]">Supervise the first runs</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[#1B133C]/70">
+          The worker asks before it commits anything. You approve or correct, and every correction is
+          folded back into the procedure.
+        </p>
+      </li>
+
+      <li>
+        <span class="text-xs font-semibold tabular-nums text-orange-500">Step 03</span>
+        <h3 class="mt-2 text-base font-semibold text-[#1B133C]">Put it on shift</h3>
+        <p class="mt-2 text-sm leading-relaxed text-[#1B133C]/70">
+          Run it on a schedule, on a queue or on a webhook. Exceptions route to a human with the full
+          session replay attached.
+        </p>
+      </li>
+
+    </ol>
+  </div>
+</section>
+
+<!-- ───────────────────────  EARLY ACCESS  ─────────────────── -->
+<section id="early-access" class="bg-[#1B133C] px-4 py-20 md:py-28">
+  <div class="mx-auto max-w-3xl text-center">
+    <h2 class="font-['Instrument_Serif'] text-3xl md:text-5xl leading-[1.05] tracking-tight text-[#FEFEFE] text-balance">
+      Put your first worker on shift <em class="italic">this week</em>
+    </h2>
+    <p class="mx-auto mt-4 max-w-xl text-sm md:text-base leading-relaxed text-[#FEFEFE]/70">
+      We onboard a handful of teams at a time, and we build the first procedure with you.
+    </p>
+    <a href="#top" class="mt-8 inline-block rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3 sm:py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.2)] transition-all duration-300">
+      Get Early Access
+    </a>
+  </div>
+</section>
+
+<!-- ──────────────────────────  FOOTER  ────────────────────── -->
+<footer class="bg-[#FBFAFD] px-4 py-12 md:py-16">
+  <div class="mx-auto grid max-w-5xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
+
+    <div>
+      <div class="flex items-center gap-2">
+        <svg width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+          <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z" fill="#1B133C"></path>
+          <path d="M 256 128 L 128 128 L 0 0 L 128 0 Z" fill="#1B133C"></path>
+        </svg>
+        <span class="text-base font-semibold tracking-tight text-[#1B133C]">Axon</span>
+      </div>
+      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/60">Digital workers for mundane workflows.</p>
+    </div>
+
+    <div id="plans">
+      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">Plans</h3>
+      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+        Priced per worker on shift, not per seat. Pilot with one, add the next when it earns its keep.
+      </p>
+    </div>
+
+    <div id="security">
+      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">Security</h3>
+      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+        SOC 2 Type II. Credentials in your vault, sessions in isolated browsers, a replay and an audit
+        trail for every run.
+      </p>
+    </div>
+
+    <div id="about">
+      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">About</h3>
+      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+        Built in San Francisco by a small team out of Y Combinator.
+      </p>
+    </div>
+
+  </div>
+
+  <p class="mx-auto mt-12 max-w-5xl text-xs text-[#1B133C]/45">© 2026 Axon Labs, Inc.</p>
+</footer>
+
+</body>
+</html>
