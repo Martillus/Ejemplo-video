@@ -10,160 +10,472 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-          display: ["Instrument Serif", "Georgia", "Times New Roman", "serif"]
-        }
-      }
-    }
-  };
-</script>
-
 <style>
-  /* index.css reset */
-  body {
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    color: #1B133C;
-    margin: 0;
-    background: #FBFAFD;
-  }
+/* ────────────────────────────────────────────────────────────
+   Axon — one light visual world: navy ink on glass over video.
+   Every value ships with the page; nothing is compiled at runtime.
+   ──────────────────────────────────────────────────────────── */
 
-  /* Give the arbitrary Tailwind family a real fallback stack. */
-  .font-\[\'Instrument_Serif\'\] {
-    font-family: 'Instrument Serif', Georgia, 'Times New Roman', serif !important;
-  }
+:root {
+  --ink: #1B133C;
+  --ink-80: rgba(27, 19, 60, 0.80);
+  --ink-70: rgba(27, 19, 60, 0.70);
+  --ink-60: rgba(27, 19, 60, 0.60);
+  --ink-45: rgba(27, 19, 60, 0.45);
+  --ink-10: rgba(27, 19, 60, 0.10);
+  --paper: #FBFAFD;
+  --white: #FEFEFE;
+  --accent: #F97316;
+  --serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
 
-  /* Painted backdrop that sits under the hero video: the page still reads as
-     designed while the clip buffers, or anywhere the clip cannot be fetched. */
-  .video-fallback {
-    background:
-      radial-gradient(58% 48% at 18% 12%, #FFE3CE 0%, rgba(255, 227, 206, 0) 62%),
-      radial-gradient(52% 44% at 82% 8%,  #DCD7FB 0%, rgba(220, 215, 251, 0) 64%),
-      radial-gradient(64% 56% at 64% 88%, #CFE9E4 0%, rgba(207, 233, 228, 0) 66%),
-      radial-gradient(70% 60% at 8% 92%,  #F6DCE9 0%, rgba(246, 220, 233, 0) 62%),
-      linear-gradient(180deg, #FDFCFA 0%, #F2EFFA 100%);
-  }
+*, *::before, *::after { box-sizing: border-box; }
 
-  @keyframes axon-drift {
-    from { transform: translate3d(-1.5%, -1%, 0) scale(1.06); }
-    to   { transform: translate3d(1.5%,  1%, 0) scale(1.12); }
-  }
-  .video-fallback > span {
-    animation: axon-drift 24s ease-in-out infinite alternate;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .video-fallback > span { animation: none; }
-  }
+/* index.css */
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  margin: 0;
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+}
 
-  /* Section rules stay hairline so the type keeps the hierarchy. */
-  .hairline { box-shadow: inset 0 1px 0 rgba(27, 19, 60, 0.08); }
+h1, h2, h3, p, ul, ol, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+a { color: inherit; text-decoration: none; }
+img, video { display: block; max-width: 100%; }
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ───────────────────────────  HERO  ─────────────────────────── */
+
+.hero {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-bg { position: absolute; inset: 0; z-index: 0; }
+
+/* Painted backdrop under the clip: the hero still reads while the video
+   buffers, or anywhere the video cannot be fetched. */
+.hero-bg::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  background:
+    radial-gradient(58% 48% at 18% 12%, #FFE3CE 0%, rgba(255, 227, 206, 0) 62%),
+    radial-gradient(52% 44% at 82% 8%,  #DCD7FB 0%, rgba(220, 215, 251, 0) 64%),
+    radial-gradient(64% 56% at 64% 88%, #CFE9E4 0%, rgba(207, 233, 228, 0) 66%),
+    radial-gradient(70% 60% at 8% 92%,  #F6DCE9 0%, rgba(246, 220, 233, 0) 62%),
+    linear-gradient(180deg, #FDFCFA 0%, #F2EFFA 100%);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from { transform: translate3d(-1.2%, -0.8%, 0) scale(1.02); }
+  to   { transform: translate3d(1.2%, 0.8%, 0) scale(1.08); }
+}
+
+.hero-video {
+  position: relative;
+  width: 100%;
+  height: 130%;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* Navigation */
+.nav-wrap {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: 1rem 1rem 0;
+}
+
+.nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.70);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.brand { display: flex; align-items: center; gap: 0.5rem; }
+.brand span { font-size: 1rem; font-weight: 600; letter-spacing: -0.015em; }
+
+.nav-links { display: none; align-items: center; gap: 1.25rem; }
+
+.nav-links a {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-80);
+  transition: color 0.2s ease;
+}
+.nav-links a:hover { color: var(--ink); }
+
+/* Hero content */
+.hero-content {
+  position: relative;
+  z-index: 10;
+  margin-top: 2rem;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.badge {
+  margin-bottom: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--ink-10);
+  background: rgba(255, 255, 255, 0.70);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.badge-y {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.25rem;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 2.25rem;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  max-width: 56rem;
+}
+.hero-title span { display: block; }
+
+.hero-sub {
+  margin-top: 1.25rem;
+  max-width: 48rem;
+  font-size: 0.75rem;
+  line-height: 1.625;
+  color: var(--ink-70);
+}
+
+.btn {
+  display: inline-block;
+  border-radius: 0.75rem;
+  background: var(--white);
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.btn:hover { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
+
+.hero .btn { margin-top: 1.75rem; }
+
+/* ─────────────────────────  SECTIONS  ───────────────────────── */
+
+.section { padding: 5rem 1rem; }
+.section-paper { background: var(--paper); }
+.section-white { background: #fff; box-shadow: inset 0 1px 0 var(--ink-10); }
+
+.container { max-width: 64rem; margin: 0 auto; }
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-45);
+}
+
+.h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.875rem;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  max-width: 34rem;
+  text-wrap: balance;
+  margin-top: 0.75rem;
+}
+
+.lede {
+  margin-top: 1rem;
+  max-width: 34rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--ink-70);
+}
+
+/* Worker cards: one hairline grid, not three floating boxes. */
+.cards {
+  margin-top: 3rem;
+  display: grid;
+  gap: 1px;
+  background: var(--ink-10);
+  border: 1px solid var(--ink-10);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.card { background: #fff; padding: 1.75rem; }
+
+.card h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.25;
+}
+
+.card p {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--ink-70);
+}
+
+.card-meta {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-45);
+}
+
+/* Deploy steps — a real sequence, so the numbering carries information. */
+.steps { margin-top: 3rem; display: grid; gap: 2.5rem; }
+
+.step-num {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.step h3 {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.step p {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--ink-70);
+}
+
+/* Early access */
+.cta-band { background: var(--ink); padding: 5rem 1rem; text-align: center; }
+
+.cta-band .h2 {
+  color: var(--white);
+  max-width: 36rem;
+  margin: 0 auto;
+  line-height: 1.06;
+}
+.cta-band .h2 em { font-style: italic; }
+
+.cta-band p {
+  margin: 1rem auto 0;
+  max-width: 32rem;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: rgba(254, 254, 254, 0.70);
+}
+
+.cta-band .btn { margin-top: 2rem; }
+
+/* Footer */
+.footer { background: var(--paper); padding: 3rem 1rem; }
+
+.footer-grid {
+  max-width: 64rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 2.5rem;
+}
+
+.footer h3 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-45);
+}
+
+.footer p {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--ink-70);
+}
+
+.footer .brand + p { color: var(--ink-60); }
+
+.copyright {
+  max-width: 64rem;
+  margin: 3rem auto 0;
+  font-size: 0.75rem;
+  color: var(--ink-45);
+}
+
+/* ───────────────────────  BREAKPOINTS  ──────────────────────── */
+
+@media (min-width: 640px) {
+  .nav-links { display: flex; }
+  .hero-title { font-size: 3rem; }
+  .hero-sub { margin-top: 1.5rem; font-size: 0.875rem; }
+  .hero .btn { margin-top: 2rem; padding: 0.875rem 2rem; }
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .nav-wrap { padding-top: 1.5rem; }
+  .nav-pill { gap: 2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+  .nav-links { gap: 1.75rem; }
+  .hero-content { margin-top: 4rem; }
+  .hero-title { font-size: 4.5rem; }
+  .hero-sub { font-size: 1rem; }
+  .section, .cta-band { padding-top: 7rem; padding-bottom: 7rem; }
+  .h2 { font-size: 3rem; }
+  .lede { font-size: 1rem; }
+  .card { padding: 2rem; }
+  .steps { grid-template-columns: repeat(3, 1fr); gap: 3rem; }
+  .footer { padding-top: 4rem; padding-bottom: 4rem; }
+}
+
+@media (min-width: 1024px) {
+  .hero-title { font-size: 6rem; }
+  .cards { grid-template-columns: repeat(3, 1fr); }
+  .footer-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg::before { animation: none; }
+  * { transition-duration: 0.01ms !important; }
+}
 </style>
 </head>
 <body>
 
 <!-- ─────────────────────────  HERO  ───────────────────────── -->
-<section id="top" class="relative h-screen w-full overflow-hidden flex flex-col">
+<section class="hero" id="top">
 
-  <!-- Background video -->
-  <div class="absolute inset-0 z-0">
-    <div class="video-fallback absolute inset-0 overflow-hidden">
-      <span class="absolute -inset-[12%] block video-fallback"></span>
-    </div>
-    <video
-      class="relative w-full h-[130%] object-cover object-top"
-      autoplay muted loop playsinline preload="auto"
+  <div class="hero-bg">
+    <video class="hero-video" autoplay muted loop playsinline preload="auto"
       src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260714_113715_c7e0daa0-8bdd-4486-a2da-040901f8f0ea.mp4"></video>
   </div>
 
-  <!-- Navigation -->
-  <header class="relative z-10 flex justify-center pt-4 md:pt-6 px-4">
-    <nav class="flex items-center gap-4 md:gap-8 bg-white/70 backdrop-blur-md rounded-xl px-4 md:px-6 py-3 shadow-sm">
-      <a href="#top" class="flex items-center gap-2" aria-label="Axon home">
+  <header class="nav-wrap">
+    <nav class="nav-pill">
+      <a class="brand" href="#top" aria-label="Axon home">
         <svg width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true">
           <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z" fill="#1B133C"></path>
           <path d="M 256 128 L 128 128 L 0 0 L 128 0 Z" fill="#1B133C"></path>
         </svg>
-        <span class="text-base font-semibold tracking-tight text-[#1B133C]">Axon</span>
+        <span>Axon</span>
       </a>
-      <ul class="hidden sm:flex items-center gap-5 md:gap-7">
-        <li><a href="#workers" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Features</a></li>
-        <li><a href="#plans" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Plans</a></li>
-        <li><a href="#security" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">Security</a></li>
-        <li><a href="#about" class="text-sm font-medium text-[#1B133C]/80 hover:text-[#1B133C] transition-colors duration-200">About</a></li>
+      <ul class="nav-links">
+        <li><a href="#workers">Features</a></li>
+        <li><a href="#plans">Plans</a></li>
+        <li><a href="#security">Security</a></li>
+        <li><a href="#about">About</a></li>
       </ul>
     </nav>
   </header>
 
-  <!-- Hero content -->
-  <div class="relative z-10 mt-8 md:mt-16 flex flex-col items-center text-center px-4">
+  <div class="hero-content">
 
-    <div class="mb-6 inline-flex items-center gap-2 rounded-xl border border-[#1B133C]/10 bg-white/70 backdrop-blur-sm px-4 py-2 text-sm font-medium">
-      <span class="bg-orange-500 rounded w-5 h-5 flex items-center justify-center text-white font-bold text-xs leading-none" aria-hidden="true">Y</span>
-      <span class="text-[#1B133C]">Funded by Y Combinator</span>
+    <div class="badge">
+      <span class="badge-y" aria-hidden="true">Y</span>
+      <span>Funded by Y Combinator</span>
     </div>
 
-    <h1 class="font-['Instrument_Serif'] text-4xl sm:text-5xl md:text-7xl lg:text-8xl leading-[0.95] tracking-tight text-[#1B133C] max-w-4xl">
-      <span class="block">Deploy digital workers</span>
-      <span class="block">for mundane workflows</span>
+    <h1 class="hero-title">
+      <span>Deploy digital workers</span>
+      <span>for mundane workflows</span>
     </h1>
 
-    <p class="mt-5 sm:mt-6 max-w-3xl text-xs sm:text-sm md:text-base leading-relaxed text-[#1B133C]/70">
+    <p class="hero-sub">
       Eliminate your tedious browser work and 10x your team's capacity. Put intelligent agents on every
       routine process so you grow faster and deliver more for clients — effortlessly.
     </p>
 
-    <a href="#early-access" class="mt-7 sm:mt-8 inline-block rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3 sm:py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.2)] transition-all duration-300">
-      Get Early Access
-    </a>
+    <a class="btn" href="#early-access">Get Early Access</a>
 
   </div>
 </section>
 
 <!-- ─────────────────  WHAT THE WORKERS RUN  ───────────────── -->
-<section id="workers" class="bg-[#FBFAFD] px-4 py-20 md:py-28">
-  <div class="mx-auto max-w-5xl">
+<section class="section section-paper" id="workers">
+  <div class="container">
 
-    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">The work nobody wants</p>
-    <h2 class="mt-3 font-['Instrument_Serif'] text-3xl md:text-5xl leading-[1.02] tracking-tight text-[#1B133C] max-w-2xl text-balance">
-      Every process that lives inside a browser tab
-    </h2>
-    <p class="mt-4 max-w-2xl text-sm md:text-base leading-relaxed text-[#1B133C]/70">
+    <p class="eyebrow">The work nobody wants</p>
+    <h2 class="h2">Every process that lives inside a browser tab</h2>
+    <p class="lede">
       A worker signs in to the same portals your team does, follows the same steps, and writes back to
       the same systems of record. No API required on the other side.
     </p>
 
-    <div class="mt-12 grid gap-px overflow-hidden rounded-2xl border border-[#1B133C]/10 bg-[#1B133C]/10 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="cards">
 
-      <article class="bg-white p-6 md:p-8">
-        <h3 class="font-['Instrument_Serif'] text-2xl leading-snug text-[#1B133C]">Portal filing</h3>
-        <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+      <article class="card">
+        <h3>Portal filing</h3>
+        <p>
           Claims, permits, carrier and vendor portals. The worker keys the submission, clears the
           validation errors and files the confirmation number back to your record.
         </p>
-        <p class="mt-6 text-xs font-medium tabular-nums text-[#1B133C]/45">Median 41s per filing · 1,284 runs last week</p>
+        <p class="card-meta">Median 41s per filing · 1,284 runs last week</p>
       </article>
 
-      <article class="bg-white p-6 md:p-8">
-        <h3 class="font-['Instrument_Serif'] text-2xl leading-snug text-[#1B133C]">Inbox to system of record</h3>
-        <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+      <article class="card">
+        <h3>Inbox to system of record</h3>
+        <p>
           Invoices, POs and remittances arrive as PDF. The worker reads them, matches the line items and
           posts to your ERP — flagging only what it cannot match.
         </p>
-        <p class="mt-6 text-xs font-medium tabular-nums text-[#1B133C]/45">96.4% posted straight through · 3.6% escalated</p>
+        <p class="card-meta">96.4% posted straight through · 3.6% escalated</p>
       </article>
 
-      <article class="bg-white p-6 md:p-8">
-        <h3 class="font-['Instrument_Serif'] text-2xl leading-snug text-[#1B133C]">Reconciliation</h3>
-        <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
+      <article class="card">
+        <h3>Reconciliation</h3>
+        <p>
           Pull the exports, cross-check the ledgers, chase the variances. The worker runs it nightly and
           leaves a diff your controller can sign off in a morning.
         </p>
-        <p class="mt-6 text-xs font-medium tabular-nums text-[#1B133C]/45">Nightly at 02:00 · 11 variances surfaced</p>
+        <p class="card-meta">Nightly at 02:00 · 11 variances surfaced</p>
       </article>
 
     </div>
@@ -171,37 +483,35 @@
 </section>
 
 <!-- ─────────────────────  HOW IT SHIPS  ───────────────────── -->
-<section id="deploy" class="hairline bg-white px-4 py-20 md:py-28">
-  <div class="mx-auto max-w-5xl">
+<section class="section section-white" id="deploy">
+  <div class="container">
 
-    <h2 class="font-['Instrument_Serif'] text-3xl md:text-5xl leading-[1.02] tracking-tight text-[#1B133C] max-w-2xl text-balance">
-      From a screen recording to a worker on shift
-    </h2>
+    <h2 class="h2" style="margin-top:0">From a screen recording to a worker on shift</h2>
 
-    <ol class="mt-12 grid gap-10 md:grid-cols-3 md:gap-12">
+    <ol class="steps">
 
-      <li>
-        <span class="text-xs font-semibold tabular-nums text-orange-500">Step 01</span>
-        <h3 class="mt-2 text-base font-semibold text-[#1B133C]">Record the process once</h3>
-        <p class="mt-2 text-sm leading-relaxed text-[#1B133C]/70">
+      <li class="step">
+        <span class="step-num">Step 01</span>
+        <h3>Record the process once</h3>
+        <p>
           Someone who already does the job walks through it in the browser. Axon turns that session into
           a draft procedure, in steps you can read.
         </p>
       </li>
 
-      <li>
-        <span class="text-xs font-semibold tabular-nums text-orange-500">Step 02</span>
-        <h3 class="mt-2 text-base font-semibold text-[#1B133C]">Supervise the first runs</h3>
-        <p class="mt-2 text-sm leading-relaxed text-[#1B133C]/70">
+      <li class="step">
+        <span class="step-num">Step 02</span>
+        <h3>Supervise the first runs</h3>
+        <p>
           The worker asks before it commits anything. You approve or correct, and every correction is
           folded back into the procedure.
         </p>
       </li>
 
-      <li>
-        <span class="text-xs font-semibold tabular-nums text-orange-500">Step 03</span>
-        <h3 class="mt-2 text-base font-semibold text-[#1B133C]">Put it on shift</h3>
-        <p class="mt-2 text-sm leading-relaxed text-[#1B133C]/70">
+      <li class="step">
+        <span class="step-num">Step 03</span>
+        <h3>Put it on shift</h3>
+        <p>
           Run it on a schedule, on a queue or on a webhook. Exceptions route to a human with the full
           session replay attached.
         </p>
@@ -212,60 +522,45 @@
 </section>
 
 <!-- ───────────────────────  EARLY ACCESS  ─────────────────── -->
-<section id="early-access" class="bg-[#1B133C] px-4 py-20 md:py-28">
-  <div class="mx-auto max-w-3xl text-center">
-    <h2 class="font-['Instrument_Serif'] text-3xl md:text-5xl leading-[1.05] tracking-tight text-[#FEFEFE] text-balance">
-      Put your first worker on shift <em class="italic">this week</em>
-    </h2>
-    <p class="mx-auto mt-4 max-w-xl text-sm md:text-base leading-relaxed text-[#FEFEFE]/70">
-      We onboard a handful of teams at a time, and we build the first procedure with you.
-    </p>
-    <a href="#top" class="mt-8 inline-block rounded-xl bg-[#FEFEFE] px-6 sm:px-8 py-3 sm:py-3.5 text-sm font-semibold text-[#1B133C] shadow-[0px_4px_12px_rgba(0,0,0,0.15)] hover:shadow-[0px_6px_16px_rgba(0,0,0,0.2)] transition-all duration-300">
-      Get Early Access
-    </a>
-  </div>
+<section class="cta-band" id="early-access">
+  <h2 class="h2">Put your first worker on shift <em>this week</em></h2>
+  <p>We onboard a handful of teams at a time, and we build the first procedure with you.</p>
+  <a class="btn" href="#top">Get Early Access</a>
 </section>
 
 <!-- ──────────────────────────  FOOTER  ────────────────────── -->
-<footer class="bg-[#FBFAFD] px-4 py-12 md:py-16">
-  <div class="mx-auto grid max-w-5xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
+<footer class="footer">
+  <div class="footer-grid">
 
     <div>
-      <div class="flex items-center gap-2">
+      <div class="brand">
         <svg width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true">
           <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z" fill="#1B133C"></path>
           <path d="M 256 128 L 128 128 L 0 0 L 128 0 Z" fill="#1B133C"></path>
         </svg>
-        <span class="text-base font-semibold tracking-tight text-[#1B133C]">Axon</span>
+        <span>Axon</span>
       </div>
-      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/60">Digital workers for mundane workflows.</p>
+      <p>Digital workers for mundane workflows.</p>
     </div>
 
     <div id="plans">
-      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">Plans</h3>
-      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
-        Priced per worker on shift, not per seat. Pilot with one, add the next when it earns its keep.
-      </p>
+      <h3>Plans</h3>
+      <p>Priced per worker on shift, not per seat. Pilot with one, add the next when it earns its keep.</p>
     </div>
 
     <div id="security">
-      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">Security</h3>
-      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
-        SOC 2 Type II. Credentials in your vault, sessions in isolated browsers, a replay and an audit
-        trail for every run.
-      </p>
+      <h3>Security</h3>
+      <p>SOC 2 Type II. Credentials in your vault, sessions in isolated browsers, a replay and an audit trail for every run.</p>
     </div>
 
     <div id="about">
-      <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-[#1B133C]/45">About</h3>
-      <p class="mt-3 text-sm leading-relaxed text-[#1B133C]/70">
-        Built in San Francisco by a small team out of Y Combinator.
-      </p>
+      <h3>About</h3>
+      <p>Built in San Francisco by a small team out of Y Combinator.</p>
     </div>
 
   </div>
 
-  <p class="mx-auto mt-12 max-w-5xl text-xs text-[#1B133C]/45">© 2026 Axon Labs, Inc.</p>
+  <p class="copyright">© 2026 Axon Labs, Inc.</p>
 </footer>
 
 </body>
