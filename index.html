@@ -59,7 +59,8 @@ body{min-height:100%; background:#04101f; color:var(--ink); font-family:var(--fo
   background-image:url("https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_508c64b8-a31e-4290-bdfc-1187df70e0a6.png");
   background-size:cover; background-position:center; background-repeat:no-repeat}
 .sky video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
-  display:block; opacity:0; transition:opacity .22s linear}
+  display:block; opacity:0; transition:opacity .22s linear;
+  filter:contrast(1.06) saturate(1.06)}
 .sky video.is-active{opacity:1}
 @media (prefers-reduced-motion:reduce){ .sky video{display:none} }
 
@@ -300,12 +301,18 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
   box-shadow:0 calc(-3 * var(--u)) calc(74 * var(--u)) rgba(var(--p-rgb),.30);
   transition:background .55s linear, box-shadow .55s linear}
 .limb::after{content:""; position:absolute; inset:0; border-radius:50%;
-  box-shadow:inset 0 calc(3 * var(--u)) calc(30 * var(--u)) rgba(255,255,255,.18)}
+  box-shadow:inset 0 calc(2 * var(--u)) calc(16 * var(--u)) rgba(255,255,255,.14)}
+/* the limb's surface detail and horizon rim, drawn at device resolution:
+   a bare gradient at this size reads as out of focus */
+#limbtex{position:absolute; inset:0; width:100%; height:100%; display:block;
+  pointer-events:none; mix-blend-mode:soft-light}
 
 /* above the clip: horizon wash, vignette, meteors, switch flash */
 .glow{position:absolute; inset:0; z-index:2; pointer-events:none; mix-blend-mode:screen;
   background:radial-gradient(86% 54% at 50% 114%, rgba(var(--p-rgb),.30) 0%, rgba(0,0,0,0) 70%);
   transition:background .55s linear}
+.grain{position:absolute; inset:0; z-index:2; pointer-events:none; opacity:.05;
+  mix-blend-mode:overlay; background-repeat:repeat; background-size:140px 140px}
 .vign{position:absolute; inset:0; z-index:2; pointer-events:none;
   background:radial-gradient(118% 88% at 50% 44%, rgba(0,0,0,0) 46%, rgba(2,7,15,.58) 100%)}
 .fx-top{position:absolute; inset:0; z-index:2; width:100%; height:100%; display:block;
@@ -527,6 +534,7 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
       <span class="neb neb-a"></span>
       <span class="neb neb-b"></span>
       <div class="limb"></div>
+      <canvas id="limbtex"></canvas>
     </div>
   </div>
 
@@ -547,6 +555,7 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
 
   <div class="glow" aria-hidden="true"></div>
   <div class="vign" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
   <canvas id="fx-top" class="fx-top" aria-hidden="true"></canvas>
   <div class="flash" aria-hidden="true"></div>
 
@@ -990,6 +999,101 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
     img.addEventListener('error', function(){ fallback(img); }, {once:true});
   });
 
+  /* ── the big planet: surface detail and horizon rim, at device resolution ──
+     The limb underneath is a CSS gradient, which carries colour but no
+     detail, so at full-bleed size it reads as out of focus. This paints
+     terrain over it in soft-light — greyscale only, so the planet's colour
+     still comes from CSS and still transitions when the planet changes. */
+  var limbCv = document.getElementById('limbtex'), lctx = limbCv && limbCv.getContext('2d');
+  var terrain = null;
+
+  function buildTerrain(){
+    var T = 384, c = document.createElement('canvas');
+    c.width = c.height = T;
+    var x = c.getContext('2d'), im = x.createImageData(T, T), d = im.data;
+    var big = makeNoise(31337), fine = makeNoise(7717);
+    for(var j = 0; j < T; j++){
+      for(var i = 0; i < T; i++){
+        var u = i/T*5.5, v = j/T*5.5;
+        var g = big(u, v, 5, 2.08, 0.55)*0.74 + fine(u*3.3, v*3.3, 3, 2.4, 0.5)*0.26;
+        g = Math.pow(g, 1.12);
+        var k = (j*T + i)*4, val = 28 + g*220;
+        d[k] = d[k+1] = d[k+2] = val; d[k+3] = 255;
+      }
+    }
+    x.putImageData(im, 0, 0);
+    return c;
+  }
+
+  function drawLimb(w, h){
+    if(!lctx) return;
+    if(!terrain) terrain = buildTerrain();
+    lctx.clearRect(0, 0, w, h);
+
+    /* the same ellipse the CSS .limb describes: left -40%, width 180%,
+       bottom -46%, height 70% */
+    var cx = w*0.5, rx = w*0.90, ry = h*0.35, cy = h*1.11, top = cy - ry;
+    if(top >= h) return;
+
+    lctx.save();
+    lctx.beginPath();
+    lctx.ellipse(cx, cy, rx, ry, 0, 0, 6.2832);
+    lctx.clip();
+
+    /* terrain in strips, compressed towards the horizon so the surface
+       reads as receding rather than wallpapered on */
+    var N = 16, span = h - top, T = terrain.width;
+    for(var i = 0; i < N; i++){
+      var f0 = i/N, f1 = (i + 1)/N;
+      var y0 = top + span*f0*f0, y1 = top + span*f1*f1;      /* nearer rows get more room */
+      var sy = T*(0.10 + 0.78*f0), sh = Math.max(1, T*0.78*(f1 - f0));
+      var spread = 1 + f0*0.34;                               /* curvature towards the viewer */
+      var dw = w*spread, dx = (w - dw)/2;
+      lctx.globalAlpha = 0.52 + 0.40*f0;
+      lctx.drawImage(terrain, 0, sy, T, sh, dx, y0, dw, Math.max(1, y1 - y0));
+
+      /* a second, wider pass: broad cloud bands over the fine terrain */
+      lctx.globalAlpha = (0.22 + 0.20*f0);
+      lctx.drawImage(terrain, T*0.15, T*(0.62 - 0.30*f0), T*0.7, Math.max(1, T*0.30*(f1 - f0)),
+                     dx - dw*0.35, y0, dw*1.7, Math.max(1, y1 - y0));
+    }
+    lctx.globalAlpha = 1;
+
+    /* haze band hugging the horizon, then a crisp rim on the edge itself */
+    var band = lctx.createLinearGradient(0, top, 0, top + Math.max(10, h*0.085));
+    band.addColorStop(0, 'rgba(255,255,255,.50)');
+    band.addColorStop(0.45, 'rgba(255,255,255,.14)');
+    band.addColorStop(1, 'rgba(255,255,255,0)');
+    lctx.fillStyle = band;
+    lctx.fillRect(0, top, w, Math.max(10, h*0.085));
+    lctx.restore();
+
+    lctx.save();
+    lctx.beginPath();
+    lctx.ellipse(cx, cy, rx, ry, 0, Math.PI, 6.2832);         /* the visible upper arc */
+    lctx.strokeStyle = 'rgba(255,255,255,.78)';
+    lctx.lineWidth = 1.1;
+    lctx.stroke();
+    lctx.restore();
+  }
+
+  /* film grain, generated rather than shipped, over the whole frame: it
+     also takes the softness off the upscaled clip */
+  function buildGrain(){
+    var G = 140, c = document.createElement('canvas');
+    c.width = c.height = G;
+    var x = c.getContext('2d'), im = x.createImageData(G, G), d = im.data;
+    var rnd = mulberry32(90210);
+    for(var i = 0; i < G*G; i++){
+      var v = 90 + rnd()*165, k = i*4;
+      d[k] = d[k+1] = d[k+2] = v; d[k+3] = 255;
+    }
+    x.putImageData(im, 0, 0);
+    var el = document.querySelector('.grain');
+    if(el) el.style.backgroundImage = 'url("' + c.toDataURL('image/png') + '")';
+  }
+  buildGrain();
+
   /* ── starfield and meteors ── */
   var starCv = document.getElementById('stars'), topCv = document.getElementById('fx-top');
   var sctx = starCv.getContext('2d'), tctx = topCv.getContext('2d');
@@ -1024,6 +1128,7 @@ p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight
     DPR = Math.min(2, window.devicePixelRatio || 1);
     var a = fit(starCv, sctx); sw = a[0]; sh = a[1];
     var b = fit(topCv, tctx);  tw = b[0]; th = b[1];
+    if(limbCv){ var c = fit(limbCv, lctx); drawLimb(c[0], c[1]); }
     build();
     drawStars(0);
   }
