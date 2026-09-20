@@ -10,6 +10,18 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
 
+<script>
+/* Motion is opt-in: without JS, or when the visitor asks for reduced motion,
+   the page renders at its resting state and the loader never appears. */
+(function () {
+  try {
+    if (!window.matchMedia || !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.documentElement.classList.add('anim');
+    }
+  } catch (e) {}
+})();
+</script>
+
 <style>
 /* ────────────────────────────────────────────────────────────
    Axon — one light visual world: navy ink on glass over video.
@@ -28,6 +40,8 @@
   --accent: #F97316;
   --serif: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --nav-h: 4rem;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -46,11 +60,165 @@ ul, ol { padding: 0; list-style: none; }
 a { color: inherit; text-decoration: none; }
 img, video { display: block; max-width: 100%; }
 
+html.anim { scroll-behavior: smooth; }
+
 :focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
   border-radius: 4px;
 }
+
+/* ─────────────────────────  LOADER  ─────────────────────────
+   A short navy hold on the mark, then the curtain lifts and the
+   hero plays its entrance underneath. Shown only when .anim is on. */
+
+.preloader { display: none; }
+
+html.anim .preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  transform: translateY(0);
+  transition: transform 0.9s cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+html.anim.ready .preloader {
+  transform: translateY(-101%);
+  pointer-events: none;
+}
+
+html.anim:not(.ready) body { overflow: hidden; }
+
+.preloader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  transition: opacity 0.4s ease, transform 0.6s var(--ease);
+}
+
+html.anim.ready .preloader-inner {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.preloader-mark .mk {
+  fill: #FEFEFE;
+  opacity: 0;
+  animation: markIn 0.7s var(--ease) both;
+}
+.preloader-mark .mk1 { animation-delay: 0.05s; }
+.preloader-mark .mk2 { animation-delay: 0.18s; }
+
+@keyframes markIn {
+  from { opacity: 0; transform: translate3d(-14px, -14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+.preloader-word {
+  font-family: var(--serif);
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  color: rgba(254, 254, 254, 0.92);
+  animation: fadeIn 0.6s ease 0.32s both;
+}
+
+.preloader-bar {
+  display: block;
+  width: 9rem;
+  height: 1px;
+  background: rgba(254, 254, 254, 0.18);
+  overflow: hidden;
+  animation: fadeIn 0.6s ease 0.4s both;
+}
+
+.preloader-bar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #FEFEFE;
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: barFill 1.6s cubic-bezier(0.32, 0.8, 0.28, 1) 0.42s both;
+}
+
+html.anim.ready .preloader-bar i {
+  animation: none;
+  transform: scaleX(1);
+  transition: transform 0.35s ease;
+}
+
+@keyframes barFill { from { transform: scaleX(0); } to { transform: scaleX(0.92); } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+
+/* ─────────────────────────  NAV  ───────────────────────────── */
+
+.nav-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  padding: calc(1rem + env(safe-area-inset-top, 0px)) 1rem 0;
+  transition: padding-top 0.45s var(--ease);
+}
+
+.nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.70);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: background 0.45s ease, box-shadow 0.45s ease, transform 0.45s var(--ease);
+}
+
+.nav-wrap.is-stuck { padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)); }
+
+.nav-wrap.is-stuck .nav-pill {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 8px 28px rgba(27, 19, 60, 0.12);
+  transform: scale(0.97);
+}
+
+.brand { display: flex; align-items: center; gap: 0.5rem; }
+.brand span { font-size: 1rem; font-weight: 600; letter-spacing: -0.015em; }
+.brand svg { transition: transform 0.5s var(--ease); }
+.brand:hover svg { transform: translateX(2px); }
+
+.nav-links { display: none; align-items: center; gap: 1.25rem; }
+
+.nav-links a {
+  position: relative;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink-80);
+  transition: color 0.2s ease;
+}
+.nav-links a:hover { color: var(--ink); }
+
+.nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s var(--ease);
+}
+.nav-links a:hover::after { transform: scaleX(1); transform-origin: left; }
 
 /* ───────────────────────────  HERO  ─────────────────────────── */
 
@@ -62,9 +230,15 @@ img, video { display: block; max-width: 100%; }
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding-top: calc(var(--nav-h) + env(safe-area-inset-top, 0px));
 }
 
-.hero-bg { position: absolute; inset: 0; z-index: 0; }
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transform: translate3d(0, var(--py, 0px), 0);
+}
 
 /* Painted backdrop under the clip: the hero still reads while the video
    buffers, or anywhere the video cannot be fetched. */
@@ -78,8 +252,9 @@ img, video { display: block; max-width: 100%; }
     radial-gradient(64% 56% at 64% 88%, #CFE9E4 0%, rgba(207, 233, 228, 0) 66%),
     radial-gradient(70% 60% at 8% 92%,  #F6DCE9 0%, rgba(246, 220, 233, 0) 62%),
     linear-gradient(180deg, #FDFCFA 0%, #F2EFFA 100%);
-  animation: drift 26s ease-in-out infinite alternate;
 }
+
+html.anim .hero-bg::before { animation: drift 26s ease-in-out infinite alternate; }
 
 @keyframes drift {
   from { transform: translate3d(-1.2%, -0.8%, 0) scale(1.02); }
@@ -92,41 +267,40 @@ img, video { display: block; max-width: 100%; }
   height: 130%;
   object-fit: cover;
   object-position: top;
+  transform-origin: 50% 0%;
 }
 
-/* Navigation */
-.nav-wrap {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  justify-content: center;
-  padding: 1rem 1rem 0;
+/* Settle out of the loader, then breathe. */
+html.anim.ready .hero-video {
+  animation:
+    videoIn 1.8s var(--ease) both,
+    breathe 30s ease-in-out 1.8s infinite alternate;
 }
 
-.nav-pill {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: rgba(255, 255, 255, 0.70);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+@keyframes videoIn { from { opacity: 0; transform: scale(1.14); } to { opacity: 1; transform: scale(1.04); } }
+@keyframes breathe { from { transform: scale(1.04); } to { transform: scale(1.11); } }
+
+/* Fine grain over the clip, and a blend into the section below. */
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-.brand { display: flex; align-items: center; gap: 0.5rem; }
-.brand span { font-size: 1rem; font-weight: 600; letter-spacing: -0.015em; }
-
-.nav-links { display: none; align-items: center; gap: 1.25rem; }
-
-.nav-links a {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--ink-80);
-  transition: color 0.2s ease;
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 26%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(251, 250, 253, 0) 0%, rgba(251, 250, 253, 0.55) 55%, rgba(251, 250, 253, 0.95) 100%);
 }
-.nav-links a:hover { color: var(--ink); }
 
 /* Hero content */
 .hero-content {
@@ -169,6 +343,13 @@ img, video { display: block; max-width: 100%; }
   justify-content: center;
 }
 
+html.anim .badge-y { animation: pulseY 4.5s ease-in-out 2.6s infinite; }
+
+@keyframes pulseY {
+  0%, 88%, 100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+  92%           { box-shadow: 0 0 0 5px rgba(249, 115, 22, 0.18); }
+}
+
 .hero-title {
   font-family: var(--serif);
   font-weight: 400;
@@ -177,7 +358,15 @@ img, video { display: block; max-width: 100%; }
   letter-spacing: -0.025em;
   max-width: 56rem;
 }
-.hero-title span { display: block; }
+
+/* Each line rides up from behind its own mask. */
+.line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.09em;
+  margin-bottom: -0.09em;
+}
+.line > span { display: block; }
 
 .hero-sub {
   margin-top: 1.25rem;
@@ -188,6 +377,8 @@ img, video { display: block; max-width: 100%; }
 }
 
 .btn {
+  position: relative;
+  overflow: hidden;
   display: inline-block;
   border-radius: 0.75rem;
   background: var(--white);
@@ -196,11 +387,72 @@ img, video { display: block; max-width: 100%; }
   font-weight: 600;
   color: var(--ink);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  transition: box-shadow 0.3s ease, transform 0.3s var(--ease);
 }
-.btn:hover { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
+.btn:hover { box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+
+/* Light sweeping across the face on hover. */
+.btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -130%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(27, 19, 60, 0.10), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.75s ease;
+}
+.btn:hover::after { left: 140%; }
 
 .hero .btn { margin-top: 1.75rem; }
+
+/* Scroll cue */
+.scroll-cue {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: 1.75rem;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-45);
+  transition: opacity 0.5s ease, transform 0.5s var(--ease);
+}
+.scroll-cue.hide { opacity: 0; transform: translate(-50%, 10px); }
+
+.scroll-cue i {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 2.5rem;
+  background: var(--ink-10);
+  overflow: hidden;
+}
+
+.scroll-cue i::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1px;
+  height: 45%;
+  background: var(--ink-45);
+}
+
+html.anim .scroll-cue i::after { animation: cue 2.4s ease-in-out infinite; }
+
+@keyframes cue {
+  0%   { transform: translateY(-120%); }
+  55%  { transform: translateY(240%); }
+  100% { transform: translateY(240%); }
+}
 
 /* ─────────────────────────  SECTIONS  ───────────────────────── */
 
@@ -248,7 +500,38 @@ img, video { display: block; max-width: 100%; }
   overflow: hidden;
 }
 
-.card { background: #fff; padding: 1.75rem; }
+.card {
+  position: relative;
+  background: #fff;
+  padding: 1.75rem;
+  isolation: isolate;
+}
+
+/* Warmth follows the pointer across the card. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(16rem 16rem at var(--mx, 50%) var(--my, 0%), rgba(249, 115, 22, 0.10), transparent 70%);
+  transition: opacity 0.45s ease;
+}
+.card:hover::before { opacity: 1; }
+
+.card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.55s var(--ease);
+}
+.card:hover::after { transform: scaleX(1); }
 
 .card h3 {
   font-family: var(--serif);
@@ -270,10 +553,22 @@ img, video { display: block; max-width: 100%; }
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: var(--ink-45);
+  transition: color 0.45s ease;
 }
+.card:hover .card-meta { color: var(--ink-70); }
 
 /* Deploy steps — a real sequence, so the numbering carries information. */
-.steps { margin-top: 3rem; display: grid; gap: 2.5rem; }
+.steps-rule {
+  margin-top: 3rem;
+  height: 1px;
+  background: var(--ink-10);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.1s var(--ease);
+}
+.steps-rule.in { transform: scaleX(1); }
+
+.steps { margin-top: 2.5rem; display: grid; gap: 2.5rem; }
 
 .step-num {
   font-size: 0.75rem;
@@ -296,7 +591,26 @@ img, video { display: block; max-width: 100%; }
 }
 
 /* Early access */
-.cta-band { background: var(--ink); padding: 5rem 1rem; text-align: center; }
+.cta-band {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  padding: 5rem 1rem;
+  text-align: center;
+}
+
+.cta-band::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background:
+    radial-gradient(38% 46% at 30% 30%, rgba(124, 96, 255, 0.28), transparent 70%),
+    radial-gradient(34% 40% at 72% 70%, rgba(249, 115, 22, 0.20), transparent 72%);
+}
+
+html.anim .cta-band::before { animation: drift 34s ease-in-out infinite alternate; }
+
+.cta-band > * { position: relative; }
 
 .cta-band .h2 {
   color: var(--white);
@@ -350,6 +664,49 @@ img, video { display: block; max-width: 100%; }
   color: var(--ink-45);
 }
 
+/* ─────────────────  ENTRANCE + SCROLL REVEALS  ───────────────
+   Resting state is the visible one; .anim adds the hidden start. */
+
+html.anim .nav-pill,
+html.anim .badge,
+html.anim .hero-sub,
+html.anim .hero .btn,
+html.anim .scroll-cue { opacity: 0; }
+
+html.anim .line > span { transform: translateY(105%); }
+
+html.anim.ready .nav-pill   { animation: fadeDown 0.9s var(--ease) 0.15s both; }
+html.anim.ready .badge      { animation: rise 0.9s var(--ease) 0.30s both; }
+html.anim.ready .line > span { animation: lineRise 1.1s var(--ease) both; }
+html.anim.ready .line:nth-child(1) > span { animation-delay: 0.40s; }
+html.anim.ready .line:nth-child(2) > span { animation-delay: 0.52s; }
+html.anim.ready .hero-sub   { animation: rise 0.9s var(--ease) 0.70s both; }
+html.anim.ready .hero .btn  { animation: rise 0.9s var(--ease) 0.82s both; }
+html.anim.ready .scroll-cue { animation: fadeIn 1s ease 1.15s both; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px); filter: blur(6px); }
+  to   { opacity: 1; transform: none; filter: blur(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes lineRise {
+  from { transform: translateY(105%); }
+  to   { transform: translateY(0); }
+}
+
+html.anim [data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition:
+    opacity 0.85s var(--ease),
+    transform 0.85s var(--ease);
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+html.anim [data-reveal].in { opacity: 1; transform: none; }
+
 /* ───────────────────────  BREAKPOINTS  ──────────────────────── */
 
 @media (min-width: 640px) {
@@ -362,7 +719,8 @@ img, video { display: block; max-width: 100%; }
 }
 
 @media (min-width: 768px) {
-  .nav-wrap { padding-top: 1.5rem; }
+  :root { --nav-h: 4.5rem; }
+  .nav-wrap { padding-top: calc(1.5rem + env(safe-area-inset-top, 0px)); }
   .nav-pill { gap: 2rem; padding-left: 1.5rem; padding-right: 1.5rem; }
   .nav-links { gap: 1.75rem; }
   .hero-content { margin-top: 4rem; }
@@ -381,14 +739,40 @@ img, video { display: block; max-width: 100%; }
   .cards { grid-template-columns: repeat(3, 1fr); }
   .footer-grid { grid-template-columns: repeat(4, 1fr); }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-bg::before { animation: none; }
-  * { transition-duration: 0.01ms !important; }
-}
 </style>
 </head>
 <body>
+
+<!-- ────────────────────────  LOADER  ──────────────────────── -->
+<div class="preloader" aria-hidden="true">
+  <div class="preloader-inner">
+    <svg class="preloader-mark" width="36" height="36" viewBox="0 0 256 256">
+      <path class="mk mk1" d="M 256 128 L 128 128 L 0 0 L 128 0 Z"></path>
+      <path class="mk mk2" d="M 256 256 L 128 256 L 0 128 L 128 128 Z"></path>
+    </svg>
+    <span class="preloader-word">Axon</span>
+    <span class="preloader-bar"><i></i></span>
+  </div>
+</div>
+
+<!-- ──────────────────────────  NAV  ───────────────────────── -->
+<header class="nav-wrap">
+  <nav class="nav-pill">
+    <a class="brand" href="#top" aria-label="Axon home">
+      <svg width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+        <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z" fill="#1B133C"></path>
+        <path d="M 256 128 L 128 128 L 0 0 L 128 0 Z" fill="#1B133C"></path>
+      </svg>
+      <span>Axon</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#workers">Features</a></li>
+      <li><a href="#plans">Plans</a></li>
+      <li><a href="#security">Security</a></li>
+      <li><a href="#about">About</a></li>
+    </ul>
+  </nav>
+</header>
 
 <!-- ─────────────────────────  HERO  ───────────────────────── -->
 <section class="hero" id="top">
@@ -398,23 +782,7 @@ img, video { display: block; max-width: 100%; }
       src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260714_113715_c7e0daa0-8bdd-4486-a2da-040901f8f0ea.mp4"></video>
   </div>
 
-  <header class="nav-wrap">
-    <nav class="nav-pill">
-      <a class="brand" href="#top" aria-label="Axon home">
-        <svg width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true">
-          <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z" fill="#1B133C"></path>
-          <path d="M 256 128 L 128 128 L 0 0 L 128 0 Z" fill="#1B133C"></path>
-        </svg>
-        <span>Axon</span>
-      </a>
-      <ul class="nav-links">
-        <li><a href="#workers">Features</a></li>
-        <li><a href="#plans">Plans</a></li>
-        <li><a href="#security">Security</a></li>
-        <li><a href="#about">About</a></li>
-      </ul>
-    </nav>
-  </header>
+  <div class="hero-grain" aria-hidden="true"></div>
 
   <div class="hero-content">
 
@@ -424,8 +792,8 @@ img, video { display: block; max-width: 100%; }
     </div>
 
     <h1 class="hero-title">
-      <span>Deploy digital workers</span>
-      <span>for mundane workflows</span>
+      <span class="line"><span>Deploy digital workers</span></span>
+      <span class="line"><span>for mundane workflows</span></span>
     </h1>
 
     <p class="hero-sub">
@@ -436,46 +804,51 @@ img, video { display: block; max-width: 100%; }
     <a class="btn" href="#early-access">Get Early Access</a>
 
   </div>
+
+  <div class="scroll-cue" aria-hidden="true">
+    <i></i>
+    <span>Scroll</span>
+  </div>
 </section>
 
 <!-- ─────────────────  WHAT THE WORKERS RUN  ───────────────── -->
 <section class="section section-paper" id="workers">
   <div class="container">
 
-    <p class="eyebrow">The work nobody wants</p>
-    <h2 class="h2">Every process that lives inside a browser tab</h2>
-    <p class="lede">
+    <p class="eyebrow" data-reveal>The work nobody wants</p>
+    <h2 class="h2" data-reveal style="--i:1">Every process that lives inside a browser tab</h2>
+    <p class="lede" data-reveal style="--i:2">
       A worker signs in to the same portals your team does, follows the same steps, and writes back to
       the same systems of record. No API required on the other side.
     </p>
 
     <div class="cards">
 
-      <article class="card">
+      <article class="card" data-reveal style="--i:1">
         <h3>Portal filing</h3>
         <p>
           Claims, permits, carrier and vendor portals. The worker keys the submission, clears the
           validation errors and files the confirmation number back to your record.
         </p>
-        <p class="card-meta">Median 41s per filing · 1,284 runs last week</p>
+        <p class="card-meta">Median <span data-count="41">41</span>s per filing · <span data-count="1284">1,284</span> runs last week</p>
       </article>
 
-      <article class="card">
+      <article class="card" data-reveal style="--i:2">
         <h3>Inbox to system of record</h3>
         <p>
           Invoices, POs and remittances arrive as PDF. The worker reads them, matches the line items and
           posts to your ERP — flagging only what it cannot match.
         </p>
-        <p class="card-meta">96.4% posted straight through · 3.6% escalated</p>
+        <p class="card-meta"><span data-count="96.4" data-dec="1">96.4</span>% posted straight through · 3.6% escalated</p>
       </article>
 
-      <article class="card">
+      <article class="card" data-reveal style="--i:3">
         <h3>Reconciliation</h3>
         <p>
           Pull the exports, cross-check the ledgers, chase the variances. The worker runs it nightly and
           leaves a diff your controller can sign off in a morning.
         </p>
-        <p class="card-meta">Nightly at 02:00 · 11 variances surfaced</p>
+        <p class="card-meta">Nightly at 02:00 · <span data-count="11">11</span> variances surfaced</p>
       </article>
 
     </div>
@@ -486,11 +859,13 @@ img, video { display: block; max-width: 100%; }
 <section class="section section-white" id="deploy">
   <div class="container">
 
-    <h2 class="h2" style="margin-top:0">From a screen recording to a worker on shift</h2>
+    <h2 class="h2" style="margin-top:0" data-reveal>From a screen recording to a worker on shift</h2>
+
+    <div class="steps-rule" data-reveal-rule></div>
 
     <ol class="steps">
 
-      <li class="step">
+      <li class="step" data-reveal style="--i:1">
         <span class="step-num">Step 01</span>
         <h3>Record the process once</h3>
         <p>
@@ -499,7 +874,7 @@ img, video { display: block; max-width: 100%; }
         </p>
       </li>
 
-      <li class="step">
+      <li class="step" data-reveal style="--i:2">
         <span class="step-num">Step 02</span>
         <h3>Supervise the first runs</h3>
         <p>
@@ -508,7 +883,7 @@ img, video { display: block; max-width: 100%; }
         </p>
       </li>
 
-      <li class="step">
+      <li class="step" data-reveal style="--i:3">
         <span class="step-num">Step 03</span>
         <h3>Put it on shift</h3>
         <p>
@@ -523,16 +898,16 @@ img, video { display: block; max-width: 100%; }
 
 <!-- ───────────────────────  EARLY ACCESS  ─────────────────── -->
 <section class="cta-band" id="early-access">
-  <h2 class="h2">Put your first worker on shift <em>this week</em></h2>
-  <p>We onboard a handful of teams at a time, and we build the first procedure with you.</p>
-  <a class="btn" href="#top">Get Early Access</a>
+  <h2 class="h2" data-reveal>Put your first worker on shift <em>this week</em></h2>
+  <p data-reveal style="--i:1">We onboard a handful of teams at a time, and we build the first procedure with you.</p>
+  <a class="btn" href="#top" data-reveal style="--i:2">Get Early Access</a>
 </section>
 
 <!-- ──────────────────────────  FOOTER  ────────────────────── -->
 <footer class="footer">
   <div class="footer-grid">
 
-    <div>
+    <div data-reveal>
       <div class="brand">
         <svg width="24" height="24" viewBox="0 0 256 256" fill="none" aria-hidden="true">
           <path d="M 256 256 L 128 256 L 0 128 L 128 128 Z" fill="#1B133C"></path>
@@ -543,17 +918,17 @@ img, video { display: block; max-width: 100%; }
       <p>Digital workers for mundane workflows.</p>
     </div>
 
-    <div id="plans">
+    <div id="plans" data-reveal style="--i:1">
       <h3>Plans</h3>
       <p>Priced per worker on shift, not per seat. Pilot with one, add the next when it earns its keep.</p>
     </div>
 
-    <div id="security">
+    <div id="security" data-reveal style="--i:2">
       <h3>Security</h3>
       <p>SOC 2 Type II. Credentials in your vault, sessions in isolated browsers, a replay and an audit trail for every run.</p>
     </div>
 
-    <div id="about">
+    <div id="about" data-reveal style="--i:3">
       <h3>About</h3>
       <p>Built in San Francisco by a small team out of Y Combinator.</p>
     </div>
@@ -562,6 +937,103 @@ img, video { display: block; max-width: 100%; }
 
   <p class="copyright">© 2026 Axon Labs, Inc.</p>
 </footer>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  /* The loader hands over to the hero. Whatever happens — slow fonts, a video
+     that never arrives, a thrown error — .ready lands and the page is usable. */
+  var handed = false;
+  function ready() {
+    if (handed) return;
+    handed = true;
+    root.classList.add('ready');
+  }
+
+  if (!root.classList.contains('anim')) { ready(); return; }
+
+  setTimeout(ready, 2600);
+
+  try {
+    var start = Date.now(), HOLD = 1100;
+    var waits = [new Promise(function (res) {
+      if (document.readyState === 'complete') res();
+      else addEventListener('load', res, { once: true });
+    })];
+    if (document.fonts && document.fonts.ready) waits.push(document.fonts.ready);
+
+    Promise.all(waits).then(function () {
+      setTimeout(ready, Math.max(0, HOLD - (Date.now() - start)));
+    })['catch'](ready);
+  } catch (e) { ready(); }
+
+  /* Scroll: parallax on the clip, a tighter nav, and the cue stepping aside. */
+  var bg = document.querySelector('.hero-bg');
+  var nav = document.querySelector('.nav-wrap');
+  var cue = document.querySelector('.scroll-cue');
+  var queued = false;
+
+  function onScroll() {
+    queued = false;
+    var y = window.pageYOffset || 0;
+    if (bg && y < innerHeight * 1.4) bg.style.setProperty('--py', (-y * 0.22) + 'px');
+    if (nav) nav.classList.toggle('is-stuck', y > 24);
+    if (cue) cue.classList.toggle('hide', y > 60);
+  }
+
+  addEventListener('scroll', function () {
+    if (!queued) { queued = true; requestAnimationFrame(onScroll); }
+  }, { passive: true });
+  onScroll();
+
+  /* Reveals. Without an observer everything is simply shown. */
+  var items = [].slice.call(document.querySelectorAll('[data-reveal], [data-reveal-rule]'));
+
+  function show(el) {
+    el.classList.add('in');
+    [].slice.call(el.querySelectorAll('[data-count]')).forEach(count);
+  }
+
+  if (!('IntersectionObserver' in window)) {
+    items.forEach(show);
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        show(entry.target);
+        io.unobserve(entry.target);
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.15 });
+    items.forEach(function (el) { io.observe(el); });
+  }
+
+  /* Run figures tick up to the value already written in the markup. */
+  function count(el) {
+    var to = parseFloat(el.getAttribute('data-count'));
+    var dec = parseInt(el.getAttribute('data-dec') || '0', 10);
+    if (isNaN(to)) return;
+    var t0 = null, dur = 1200;
+    function frame(t) {
+      if (t0 === null) t0 = t;
+      var p = Math.min(1, (t - t0) / dur);
+      var v = to * (1 - Math.pow(1 - p, 3));
+      el.textContent = dec ? v.toFixed(dec) : Math.round(v).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* Pointer warmth on the worker cards. */
+  [].slice.call(document.querySelectorAll('.card')).forEach(function (card) {
+    card.addEventListener('pointermove', function (e) {
+      var r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+})();
+</script>
 
 </body>
 </html>
