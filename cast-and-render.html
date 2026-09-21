@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cast &amp; Render — 3D Object Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://d2ol7oe51mr4n9.cloudfront.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS — the page is keyed entirely in blue: pale blue paper,
+   deep navy ink, one saturated cobalt for anything that acts.
+   ============================================================ */
+:root{
+  --fg:#08183f;
+  --fg-soft:rgba(8,24,63,.64);
+  --fg-faint:rgba(8,24,63,.42);
+  --shade:#e8eefb;
+  --rule:rgba(8,24,63,.16);
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --pill-bg:#0b2a6b;
+  --pill-fg:#ffffff;
+
+  /* blue ramp used by the sections below the scrub track */
+  --blue-050:#f1f5fe;
+  --blue-100:#dce7fb;
+  --blue-200:#c3d7f7;
+  --blue-400:#5d8ff0;
+  --blue-500:#2f6fe4;
+  --blue-600:#1b4fd6;
+  --blue-800:#12358f;
+  --blue-950:#061230;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; scroll-behavior:smooth; }
+/* this page manages its own safe-area insets on each fixed layer */
+:root{ padding:0; }
+
+body{
+  margin:0;
+  background:var(--shade);
+  color:var(--fg);
+  font-family:'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif;
+  font-weight:400;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+h1,h2,h3,p,ul,ol,figure{ margin:0; }
+ul,ol{ padding:0; list-style:none; }
+img{ max-width:100%; }
+
+/* ============================================================
+   FIXED BACKGROUND VIDEO LAYER
+   ============================================================ */
+.stage{ position:fixed; inset:0; z-index:0; overflow:hidden; background:var(--shade); }
+.stage video{
+  position:absolute; top:50%; left:50%; width:100%; height:100%;
+  transform:translate(-50%,-50%) scale(1.02); object-fit:cover;
+  filter:contrast(1.02) saturate(1.06) hue-rotate(-6deg); will-change:transform;
+}
+/* The footage is high-key white, so the veil is a deliberately light blue wash —
+   heavier at the top and bottom edges where the nav and footer sit. */
+.veil{
+  position:absolute; inset:0; pointer-events:none;
+  background:
+    linear-gradient(to bottom, rgba(232,238,251,.62) 0%, rgba(232,238,251,.12) 22%, rgba(232,238,251,.12) 78%, rgba(232,238,251,.66) 100%),
+    radial-gradient(100% 80% at 50% 48%, rgba(232,238,251,0) 0%, rgba(232,238,251,.34) 100%),
+    rgba(232,238,251,.20);
+}
+/* fine SVG turbulence so the flat wash doesn't band */
+.grain{
+  position:absolute; inset:-50%; opacity:.13; mix-blend-mode:multiply; pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.5'/></svg>");
+}
+
+/* ============================================================
+   CHROME / FOOTER / METER
+   ============================================================ */
+.chrome{
+  position:fixed; left:0; right:0; top:0; z-index:40; display:flex;
+  align-items:center; justify-content:space-between; gap:12px;
+  padding:max(14px, calc(env(safe-area-inset-top, 0px) + 12px)) clamp(16px, 3.4vw, 44px) 14px;
+  background:linear-gradient(to bottom, rgba(232,238,251,.94) 0%, rgba(232,238,251,.78) 72%, rgba(232,238,251,0) 100%);
+  transition:background .45s var(--ease), box-shadow .45s var(--ease);
+}
+/* once the scrub track is behind us the bar sits on solid sections */
+.chrome.solid{
+  background:rgba(232,238,251,.96);
+  box-shadow:0 1px 0 var(--rule);
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+}
+.mark{
+  display:flex; align-items:center; gap:9px; font-size:15px; letter-spacing:-.012em;
+  color:var(--fg); min-width:0; flex-shrink:1;
+}
+.mark-star{ opacity:.85; color:var(--blue-600); }
+
+.nav{ display:flex; align-items:center; gap:clamp(14px, 2.4vw, 32px); flex-shrink:0; }
+.nav a:not(.pill){
+  color:var(--fg); text-decoration:none; font-size:14.5px;
+  letter-spacing:-.008em; opacity:.88; transition:opacity .3s var(--ease);
+}
+.nav a:not(.pill):hover{ opacity:1; }
+
+.pill{
+  display:inline-flex; align-items:center; justify-content:center; height:40px;
+  padding:0 21px; border-radius:999px; background:var(--pill-bg); color:var(--pill-fg);
+  font-size:14.5px; font-weight:500; letter-spacing:-.008em; text-decoration:none;
+  white-space:nowrap; opacity:1; border:1px solid rgba(10,9,8,.12);
+  box-shadow:0 1px 0 rgba(255,255,255,.10) inset; -webkit-text-fill-color:var(--pill-fg);
+  transition:transform .4s var(--ease), background .3s var(--ease), color .3s var(--ease);
+}
+/* required so the nav's inherited link colour never bleeds into the dark pill on mobile Safari */
+.nav .pill{ color:#fff; -webkit-text-fill-color:#fff; }
+.pill:hover,.pill:focus-visible{
+  transform:translateY(-2px); background:#04173f; color:#fff; -webkit-text-fill-color:#fff;
+}
+.pill:focus-visible{ outline:2px solid var(--fg); outline-offset:2px; }
+
+.foot{
+  position:fixed; bottom:0; left:0; right:0; z-index:40; display:flex; justify-content:center;
+  padding:14px clamp(16px, 4vw, 24px) max(16px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+  font-size:12px; line-height:1.45; letter-spacing:.02em; color:var(--fg-faint);
+  text-align:center; pointer-events:none;
+  background:linear-gradient(to top, rgba(232,238,251,.92) 0%, rgba(232,238,251,.72) 72%, rgba(232,238,251,0) 100%);
+}
+.meter{
+  position:fixed; top:0; left:0; z-index:50; height:2px; width:100%;
+  transform:scaleX(0); transform-origin:0 50%; background:var(--blue-600); opacity:.55;
+}
+
+/* ============================================================
+   PANEL LAYER — opacity and transform are written every frame by JS
+   ============================================================ */
+.panels{ position:fixed; inset:0; z-index:20; pointer-events:none; }
+.panel{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  padding:max(104px, calc(env(safe-area-inset-top, 0px) + 88px)) clamp(20px, 5vw, 60px) max(96px, calc(env(safe-area-inset-bottom, 0px) + 80px));
+  opacity:0; will-change:opacity,transform;
+}
+.eyebrow{
+  display:flex; align-items:center; justify-content:center; flex-wrap:wrap;
+  gap:6px 12px; font-size:12.5px; letter-spacing:.045em; color:var(--fg-soft);
+  margin-bottom:clamp(16px,2vw,22px); max-width:min(46ch, 100%); text-align:center;
+}
+.panel h1{
+  font-weight:400; font-size:clamp(34px, 7.1vw, 104px); line-height:.98;
+  letter-spacing:-.036em; max-width:15ch; text-wrap:balance;
+}
+.sub{
+  margin-top:clamp(18px,2.2vw,28px); font-size:clamp(15px,1.28vw,19px);
+  line-height:1.5; letter-spacing:-.008em; color:var(--fg-soft);
+  max-width:min(46ch, 100%); text-wrap:pretty;
+}
+.cta{
+  margin-top:clamp(28px,3.4vw,44px); pointer-events:auto; width:100%;
+  display:flex; justify-content:center;
+}
+.cta .pill{ height:48px; padding:0 27px; font-size:15px; max-width:min(100%, 320px); }
+
+/* ============================================================
+   PRELOADER
+   ============================================================ */
+.boot{
+  position:fixed; inset:0; z-index:90; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:16px; background:var(--shade);
+  transition:opacity .7s var(--ease), visibility .7s;
+}
+.boot.done{ opacity:0; visibility:hidden; }
+.boot p{ font-size:12.5px; letter-spacing:.05em; color:var(--fg-faint); }
+.bar{ width:150px; height:1px; background:var(--rule); overflow:hidden; }
+.bar i{ display:block; height:100%; width:100%; background:var(--blue-600); transform:scaleX(0); transform-origin:0 50%; }
+
+/* ============================================================
+   SCROLL TRACK — the scrub runway, and the only thing giving the hero height
+   ============================================================ */
+.track{ position:relative; z-index:1; height:560vh; min-height:3200px; }
+
+/* ============================================================
+   SECTIONS BELOW THE TRACK — ordinary flow, opaque, stacked over the
+   fixed hero (which JS fades out as the handoff happens)
+   ============================================================ */
+.sheet{ position:relative; z-index:30; }
+.wrap{ width:100%; max-width:1180px; margin:0 auto; padding-inline:clamp(18px, 5vw, 56px); }
+.sec{ padding-block:clamp(72px, 10vw, 140px); }
+.sec-head{ display:flex; flex-direction:column; gap:14px; max-width:26ch; }
+.label{
+  font-size:12px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--blue-600); font-weight:500;
+}
+h2{
+  font-weight:400; font-size:clamp(30px, 4.6vw, 62px); line-height:1.02;
+  letter-spacing:-.032em; text-wrap:balance;
+}
+.lede{
+  font-size:clamp(15px, 1.2vw, 18px); line-height:1.55; letter-spacing:-.006em;
+  color:var(--fg-soft); max-width:52ch; text-wrap:pretty;
+}
+
+/* --- Works --- */
+#board{ background:var(--blue-050); border-top:1px solid var(--rule); }
+.works-top{
+  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+  gap:20px 32px; margin-bottom:clamp(34px, 4.5vw, 58px);
+}
+.works-note{ font-size:13px; letter-spacing:.02em; color:var(--fg-faint); }
+.grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:clamp(16px, 2.2vw, 28px); }
+.work{ display:flex; flex-direction:column; gap:12px; }
+.tile{
+  position:relative; aspect-ratio:4/3; max-width:100%; border-radius:12px; overflow:hidden;
+  background:linear-gradient(158deg, var(--blue-100) 0%, var(--blue-200) 100%);
+  border:1px solid rgba(8,24,63,.10);
+  transition:transform .5s var(--ease), box-shadow .5s var(--ease);
+}
+.work:hover .tile{ transform:translateY(-4px); box-shadow:0 22px 44px -26px rgba(6,18,48,.55); }
+/* the object: one lit primitive per tile, drawn with gradients rather than art */
+.tile::after{
+  content:""; position:absolute; left:50%; top:53%; width:46%; aspect-ratio:1;
+  transform:translate(-50%,-50%); border-radius:50%;
+  background:radial-gradient(circle at 32% 26%, #ffffff 0%, #a9c6f8 34%, var(--blue-600) 74%, #071c4f 100%);
+  box-shadow:0 20px 30px -14px rgba(6,18,48,.5);
+}
+.tile.t2::after{ border-radius:20%; transform:translate(-50%,-50%) rotate(-12deg); width:44%; }
+.tile.t3::after{ border-radius:50% 50% 46% 46%/62% 62% 38% 38%; width:38%; aspect-ratio:.72; }
+.tile.t4::after{
+  border-radius:999px; width:56%; aspect-ratio:2.3;
+  background:radial-gradient(ellipse at 30% 24%, #ffffff 0%, #9dc0f7 38%, var(--blue-500) 76%, #0c2a72 100%);
+}
+.tile.t5::after{ border-radius:8%; width:40%; transform:translate(-50%,-50%) rotate(45deg); }
+.tile.t6::after{
+  width:52%; aspect-ratio:.68; border-radius:6px;
+  background:linear-gradient(118deg, #ffffff 0%, #bcd4f9 28%, var(--blue-600) 72%, #05163f 100%);
+}
+.tile.t2{ background:linear-gradient(158deg, #e6eefc 0%, #bfd4f6 100%); }
+.tile.t3{ background:linear-gradient(158deg, var(--blue-200) 0%, #9fbcf1 100%); }
+.tile.t4{ background:linear-gradient(158deg, #eef3fe 0%, var(--blue-100) 100%); }
+.tile.t5{ background:linear-gradient(158deg, #cfdefa 0%, #a8c3f2 100%); }
+.tile.t6{ background:linear-gradient(158deg, #dfe9fc 0%, #b7cef5 100%); }
+.work h3{ font-weight:400; font-size:17px; letter-spacing:-.014em; }
+.work p{ font-size:13px; letter-spacing:.01em; color:var(--fg-faint); }
+
+/* --- Studio --- */
+#visit{ background:var(--blue-950); color:#e6eefc; }
+#visit .label{ color:var(--blue-400); }
+#visit .lede{ color:rgba(230,238,252,.66); }
+.studio{
+  display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);
+  gap:clamp(34px, 5vw, 78px); align-items:start;
+}
+.studio-copy{ display:flex; flex-direction:column; gap:22px; }
+.stats{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:1px; background:rgba(230,238,252,.18); border:1px solid rgba(230,238,252,.18); }
+.stat{ background:var(--blue-950); padding:clamp(20px, 2.6vw, 32px); display:flex; flex-direction:column; gap:8px; }
+.stat b{
+  font-weight:400; font-size:clamp(28px, 3.4vw, 44px); letter-spacing:-.03em;
+  line-height:1; font-variant-numeric:tabular-nums; color:#fff;
+}
+.stat span{ font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:rgba(230,238,252,.5); }
+
+/* --- Process: a real sequence, so it is numbered --- */
+#process{ background:var(--shade); }
+.steps{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:clamp(22px, 3vw, 44px); margin-top:clamp(34px, 4.5vw, 58px); }
+.step{ padding-top:20px; border-top:1px solid var(--rule); display:flex; flex-direction:column; gap:10px; }
+.step em{ font-style:normal; font-size:12px; letter-spacing:.08em; color:var(--blue-600); font-variant-numeric:tabular-nums; }
+.step h3{ font-weight:400; font-size:clamp(19px, 1.7vw, 23px); letter-spacing:-.018em; }
+.step p{ font-size:14.5px; line-height:1.55; color:var(--fg-soft); }
+
+/* --- Brief --- */
+#order{
+  background:linear-gradient(152deg, var(--blue-600) 0%, var(--blue-800) 62%, #0b2464 100%);
+  color:#fff;
+}
+.brief{ display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); gap:clamp(30px, 5vw, 70px); align-items:end; }
+#order .label{ color:rgba(255,255,255,.72); }
+#order h2{ max-width:14ch; }
+#order .lede{ color:rgba(255,255,255,.76); }
+.brief-list{ display:flex; flex-direction:column; gap:12px; }
+.brief-list li{
+  display:flex; gap:12px; font-size:14.5px; line-height:1.5;
+  color:rgba(255,255,255,.82); padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,.2);
+}
+.brief-list li span{ color:rgba(255,255,255,.5); font-variant-numeric:tabular-nums; }
+.brief-cta{ margin-top:clamp(28px, 3.4vw, 40px); display:flex; flex-wrap:wrap; align-items:center; gap:16px 22px; }
+.pill-light{
+  background:#fff; color:var(--blue-800); -webkit-text-fill-color:var(--blue-800);
+  border-color:rgba(255,255,255,.3); height:48px; padding:0 27px; font-size:15px;
+}
+.pill-light:hover,.pill-light:focus-visible{ background:#eaf1ff; color:var(--blue-800); -webkit-text-fill-color:var(--blue-800); }
+.pill-light:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+.brief-cta small{ font-size:13px; letter-spacing:.02em; color:rgba(255,255,255,.62); }
+
+/* --- Page footer --- */
+.endfoot{ background:var(--blue-950); color:rgba(230,238,252,.62); padding-block:clamp(44px, 5vw, 64px); }
+.endfoot .wrap{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:18px 40px; align-items:baseline; }
+.endfoot p{ font-size:13px; line-height:1.6; letter-spacing:.01em; }
+.endfoot b{ color:#fff; font-weight:400; }
+.endfoot a{ color:rgba(230,238,252,.62); text-decoration:none; border-bottom:1px solid rgba(230,238,252,.28); }
+.endfoot a:hover{ color:#fff; }
+
+/* reveal on scroll — only armed once JS is running, so the page is
+   fully readable with scripting off */
+.js-reveal .reveal{ opacity:0; transform:translateY(16px); }
+.js-reveal .reveal.in{ opacity:1; transform:none; transition:opacity .8s var(--ease), transform .8s var(--ease); }
+
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+  .js-reveal .reveal{ opacity:1; transform:none; }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:900px){
+  /* strengthen the veil so navy type stays legible on small, bright screens */
+  .veil{
+    background:
+      linear-gradient(to bottom, rgba(232,238,251,.72) 0%, rgba(232,238,251,.18) 24%, rgba(232,238,251,.18) 76%, rgba(232,238,251,.74) 100%),
+      radial-gradient(100% 80% at 50% 48%, rgba(232,238,251,0) 0%, rgba(232,238,251,.40) 100%),
+      rgba(232,238,251,.24);
+  }
+  .grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .studio,.brief{ grid-template-columns:minmax(0,1fr); }
+  .brief{ align-items:start; }
+  .steps{ grid-template-columns:minmax(0,1fr); }
+}
+
+@media (max-width:720px){
+  .nav a:not(.pill){ display:none; }
+  .mark{ font-size:14px; }
+  .nav .pill{ height:38px; padding:0 16px; font-size:13.5px; }
+  h1{ max-width:12ch; font-size:clamp(30px, 9.8vw, 52px); }
+  .sub{ font-size:15px; max-width:34ch; }
+  .panel{ padding:max(92px, calc(env(safe-area-inset-top, 0px) + 76px)) 18px max(88px, calc(env(safe-area-inset-bottom, 0px) + 72px)); }
+  .foot{ font-size:11px; max-width:34ch; }
+}
+
+@media (max-width:560px){
+  .grid{ grid-template-columns:minmax(0,1fr); }
+  .stats{ grid-template-columns:minmax(0,1fr); }
+}
+
+@media (max-width:420px){
+  .mark-star{ display:none; }
+  .nav .pill{ height:36px; padding:0 14px; font-size:13px; }
+  h1{ max-width:11ch; font-size:clamp(28px, 10.5vw, 40px); }
+  .eyebrow{ font-size:11px; letter-spacing:.04em; max-width:28ch; }
+  .cta .pill{ width:100%; max-width:280px; height:44px; padding:0 20px; font-size:14px; }
+  .pill-light{ width:100%; max-width:280px; }
+}
+
+@media (max-height:520px) and (orientation:landscape){
+  .panel{ padding:max(72px, calc(env(safe-area-inset-top, 0px) + 56px)) 24px max(64px, calc(env(safe-area-inset-bottom, 0px) + 48px)); }
+  h1{ font-size:clamp(28px, 8vh, 44px); }
+  .sub{ margin-top:12px; font-size:14px; }
+  .cta{ margin-top:16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="boot" id="boot">
+  <div class="bar"><i id="bootBar"></i></div>
+  <p id="bootPct">LOADING 0%</p>
+</div>
+
+<div class="stage" id="stage">
+  <video id="clip" muted playsinline preload="auto" disablepictureinpicture></video>
+  <div class="veil"></div>
+  <div class="grain"></div>
+</div>
+
+<i class="meter" id="meter"></i>
+
+<header class="chrome" id="chrome">
+  <div class="mark"><span class="mark-star" aria-hidden="true">&#10037;</span>&nbsp;Cast &amp; Render</div>
+  <nav class="nav">
+    <a href="#board">Works</a>
+    <a href="#visit">About</a>
+    <a class="pill" href="#order">Start a brief</a>
+  </nav>
+</header>
+
+<main class="panels" id="panels">
+  <section class="panel" data-panel>
+    <p class="eyebrow">Objects studio <span>&middot;</span> No. 112 Render Lane</p>
+    <h1>Built at four.<br />Out by seven.</h1>
+    <p class="sub">Six kinds of mesh, one render farm, and a queue that starts before the sun does.</p>
+    <div class="cta"><a class="pill" href="#board">View the reel</a></div>
+  </section>
+
+  <section class="panel" data-panel>
+    <p class="eyebrow">Across the studio</p>
+    <h1>Flat, never bent.</h1>
+    <p class="sub">The mesh should still be clean when it reaches the viewport. We export to order, never before.</p>
+    <div class="cta"><a class="pill" href="#visit">Tour our space</a></div>
+  </section>
+
+  <section class="panel" data-panel>
+    <p class="eyebrow">The surface</p>
+    <h1>Smooth enough to<br />hold a light pass.</h1>
+    <p class="sub">Custom surface shaders whipped every morning, spread to the edge and weighed by the quarter pound.</p>
+    <div class="cta"><a class="pill" href="#order">Start a brief</a></div>
+  </section>
+</main>
+
+<footer class="foot" id="foot">112 Render Lane &nbsp;&middot;&nbsp; Tue–Sun, 9am till sold out</footer>
+
+<div class="track" id="track"></div>
+
+<div class="sheet">
+
+  <section class="sec" id="board">
+    <div class="wrap">
+      <div class="works-top reveal">
+        <div class="sec-head">
+          <p class="label">Selected work</p>
+          <h2>Six meshes off the farm this quarter.</h2>
+        </div>
+        <p class="works-note">2025 — 2026 &nbsp;&middot;&nbsp; 1920&times;1080, all-intra</p>
+      </div>
+
+      <div class="grid">
+        <article class="work reveal">
+          <div class="tile t1" aria-hidden="true"></div>
+          <h3>Ceramic Study 04</h3>
+          <p>Product render &middot; 240 frames</p>
+        </article>
+        <article class="work reveal">
+          <div class="tile t2" aria-hidden="true"></div>
+          <h3>Aurum Bottle</h3>
+          <p>Look-dev &middot; 96 frames</p>
+        </article>
+        <article class="work reveal">
+          <div class="tile t3" aria-hidden="true"></div>
+          <h3>Hexa Lamp</h3>
+          <p>Lighting pass &middot; 180 frames</p>
+        </article>
+        <article class="work reveal">
+          <div class="tile t4" aria-hidden="true"></div>
+          <h3>Soft Body Tests</h3>
+          <p>R&amp;D &middot; 420 frames</p>
+        </article>
+        <article class="work reveal">
+          <div class="tile t5" aria-hidden="true"></div>
+          <h3>Field Kit</h3>
+          <p>Turntable set &middot; 12 SKUs</p>
+        </article>
+        <article class="work reveal">
+          <div class="tile t6" aria-hidden="true"></div>
+          <h3>Monolith</h3>
+          <p>Type in 3D &middot; 60 frames</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="visit">
+    <div class="wrap">
+      <div class="studio">
+        <div class="studio-copy reveal">
+          <p class="label">Inside the studio</p>
+          <h2>One room, nine nodes, and a very cold floor.</h2>
+          <p class="lede">We model, shade and light objects — bottles, lamps, tools, type. No characters, no crowds. Everything is sculpted in the room at 112 Render Lane and pushed to the farm overnight, so the first pass is sitting in your inbox before the second coffee.</p>
+          <p class="lede">Visits are welcome Tuesday through Sunday. Bring the physical object if there is one; we will scan it while you wait.</p>
+        </div>
+        <div class="stats reveal">
+          <div class="stat"><b>2017</b><span>Founded</span></div>
+          <div class="stat"><b>1.4M</b><span>Frames delivered</span></div>
+          <div class="stat"><b>9</b><span>Render nodes</span></div>
+          <div class="stat"><b>41</b><span>Studio clients</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="process">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <p class="label">How a brief moves</p>
+        <h2>Three stops between sketch and delivery.</h2>
+      </div>
+      <ol class="steps">
+        <li class="step reveal">
+          <em>01</em>
+          <h3>Brief &amp; boards</h3>
+          <p>You send references, dimensions and the one shot that has to work. We come back with a board and a frame count the same week.</p>
+        </li>
+        <li class="step reveal">
+          <em>02</em>
+          <h3>Sculpt &amp; look-dev</h3>
+          <p>Mesh, then materials. You see a lit still before a single frame goes to the farm, so the surface is signed off while it is still cheap to change.</p>
+        </li>
+        <li class="step reveal">
+          <em>03</em>
+          <h3>Farm &amp; delivery</h3>
+          <p>All-intra masters at 1920&times;1080, plus stills, alphas and the turntable loop. Delivered by seven, cut to whatever the viewport needs.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec" id="order">
+    <div class="wrap">
+      <div class="brief">
+        <div class="reveal">
+          <p class="label">Start a brief</p>
+          <h2>Tell us what it looks like.</h2>
+          <p class="lede">Briefs opened before noon get a frame count the same day. We take four projects a month and we say so when the month is full.</p>
+          <div class="brief-cta">
+            <a class="pill pill-light" href="mailto:hello@castandrender.studio">hello@castandrender.studio</a>
+            <small>Tue–Sun &middot; 112 Render Lane</small>
+          </div>
+        </div>
+        <ul class="brief-list reveal">
+          <li><span>01</span> The object, and whether it exists yet</li>
+          <li><span>02</span> Where the render lands — web, print, screen</li>
+          <li><span>03</span> Frame count, or the loop length you need</li>
+          <li><span>04</span> The date it has to be out by</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="endfoot">
+    <div class="wrap">
+      <p><b>Cast &amp; Render</b> — 3D object studio<br />112 Render Lane &middot; Tue–Sun, 9am till sold out</p>
+      <p><a href="#board">Works</a> &nbsp;&middot;&nbsp; <a href="#visit">About</a> &nbsp;&middot;&nbsp; <a href="#order">Start a brief</a></p>
+      <p>&copy; 2026 Cast &amp; Render. Fictional studio, real meshes.</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* The clip is 1920x1080, 10.04s, 241 frames, encoded all-intra — every frame is a
+     keyframe, which is why a scroll scrub can land on an exact frame instantly. */
+  var VIDEO_URL = "https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/45567745-d826-44a2-a5ce-7ef670944e60.mp4";
+
+  var clip    = document.getElementById("clip");
+  var boot    = document.getElementById("boot");
+  var bootBar = document.getElementById("bootBar");
+  var bootPct = document.getElementById("bootPct");
+  var meter   = document.getElementById("meter");
+  var stage   = document.getElementById("stage");
+  var panelsW = document.getElementById("panels");
+  var chrome  = document.getElementById("chrome");
+  var heroFoot= document.getElementById("foot");
+  var track   = document.getElementById("track");
+  var panels  = [].slice.call(document.querySelectorAll("[data-panel]"));
+
+  /* Each panel owns a slice of scroll as [fadeInStart, fadeInEnd, fadeOutStart, fadeOutEnd]
+     in 0..1 page progress. The gaps between one panel's fadeOutEnd and the next's
+     fadeInStart are deliberate dead zones — video only — so two panels are never
+     readable at once. */
+  var CUES = [
+    [0.00, 0.00, 0.15, 0.23],
+    [0.35, 0.43, 0.57, 0.65],
+    [0.77, 0.85, 1.10, 1.20]
+  ];
+  var DRIFT = 22; // px of counter-scroll travel per panel
+
+  function clamp(v,a,b){ return v < a ? a : (v > b ? b : v); }
+  function smooth(t){ return t*t*(3-2*t); }
+  function ramp(p,a,b){
+    if (b <= a) return p >= b ? 1 : 0;
+    return smooth(clamp((p-a)/(b-a),0,1));
+  }
+
+  var progress = 0;   // 0..1 down the scrub track
+  var handoff  = 0;   // 0..1 once the track is behind us and the sections take over
+  var seekTo   = 0;
+  var seekAt   = 0;
+  var duration = 0;
+  var ready    = false;
+  var heroHidden = null;
+
+  function readScroll(){
+    /* The track is the whole scrub runway; the sections after it scroll normally. */
+    var max = track.offsetHeight - window.innerHeight;
+    var y = window.pageYOffset;
+    progress = max > 0 ? clamp(y / max, 0, 1) : 0;
+    handoff  = clamp((y - max) / (window.innerHeight * 0.55), 0, 1);
+    if (duration) seekTo = progress * duration;
+  }
+
+  function paint(){
+    meter.style.transform = "scaleX(" + progress + ")";
+
+    for (var i = 0; i < panels.length; i++){
+      var c = CUES[i] || CUES[CUES.length - 1];
+      var enter = ramp(progress, c[0], c[1]);
+      var leave = ramp(progress, c[2], c[3]);
+      var o = enter * (1 - leave);
+      var y = (1 - enter) * DRIFT - leave * DRIFT;
+      var el = panels[i];
+      el.style.opacity = o;
+      el.style.transform = "translate3d(0," + y + "px,0)";
+      el.style.pointerEvents = o > 0.6 ? "auto" : "none";
+    }
+
+    /* Hand the page over to the solid sections: fade the fixed hero out. */
+    var vis = 1 - handoff;
+    stage.style.opacity = vis;
+    panelsW.style.opacity = vis;
+    heroFoot.style.opacity = vis;
+    meter.style.opacity = 0.55 * vis;
+
+    var hide = handoff >= 1;
+    if (hide !== heroHidden){
+      heroHidden = hide;
+      var v = hide ? "hidden" : "visible";
+      stage.style.visibility = v;
+      panelsW.style.visibility = v;
+      heroFoot.style.visibility = v;
+      meter.style.visibility = v;
+      if (hide) { try { clip.pause(); } catch (e) {} }
+    }
+    chrome.classList.toggle("solid", handoff > 0.02);
+  }
+
+  function frame(){
+    if (ready && duration){
+      var gap = seekTo - seekAt;
+      if (Math.abs(gap) > 0.0008){
+        /* Easing currentTime toward the scroll target, rather than snapping to it,
+           is what turns a jumpy scrub into a smooth one. */
+        seekAt += gap * 0.115;
+        if (clip.readyState >= 2 && !clip.seeking){
+          try { clip.currentTime = seekAt; } catch (e) {}
+        }
+      }
+    }
+    paint();
+    requestAnimationFrame(frame);
+  }
+
+  function setProgress(f){
+    bootBar.style.transform = "scaleX(" + f + ")";
+    bootPct.textContent = "LOADING " + Math.round(f * 100) + "%";
+  }
+
+  var started = false;
+  function start(){
+    if (started) return;
+    started = true;
+    ready = true;
+    boot.classList.add("done");
+    readScroll();
+    seekAt = seekTo;
+  }
+
+  var attached = false;
+  function attach(src){
+    if (attached) return;
+    attached = true;
+    // listeners go on before src, or a cached decode can fire before we are listening
+    clip.addEventListener("loadedmetadata", function(){
+      duration = clip.duration || 0;
+      clip.pause();
+      readScroll();
+      seekAt = seekTo;
+      try { clip.currentTime = seekAt; } catch (e) {}
+    });
+    clip.addEventListener("loadeddata", start);
+    clip.addEventListener("canplaythrough", start);
+    clip.addEventListener("error", start);
+    clip.src = src;
+    clip.load();
+    setTimeout(start, 12000); // a stalled decode never strands the page behind the preloader
+  }
+
+  function preload(){
+    /* Fetch the mp4 as a fully buffered blob first: seeking inside a buffered blob is
+       near instant, while range requests over the network turn the scrub into a slideshow. */
+    var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var signal = ctrl ? ctrl.signal : undefined;
+
+    var bail = setTimeout(function(){
+      if (!attached){
+        if (ctrl) { try { ctrl.abort(); } catch (e) {} }
+        setProgress(1);
+        attach(VIDEO_URL); // stream directly instead
+      }
+    }, 15000);
+
+    fetch(VIDEO_URL, { signal: signal }).then(function(res){
+      if (!res.ok || !res.body) throw new Error("no stream");
+      var total = parseInt(res.headers.get("content-length") || "0", 10);
+      var reader = res.body.getReader();
+      var chunks = [];
+      var got = 0;
+      return new Promise(function(resolve, reject){
+        (function pump(){
+          reader.read().then(function(r){
+            if (r.done){ resolve(new Blob(chunks, { type: "video/mp4" })); return; }
+            chunks.push(r.value);
+            got += r.value.length;
+            // 11e6 is the approximate byte size, used when the server sends no content-length
+            setProgress(total ? got / total : Math.min(got / 11e6, 0.95));
+            pump();
+          }).catch(reject);
+        })();
+      });
+    }).then(function(blob){
+      clearTimeout(bail);
+      setProgress(1);
+      attach(URL.createObjectURL(blob));
+    }).catch(function(){
+      clearTimeout(bail); // covers CORS failure, abort and offline
+      setProgress(1);
+      attach(VIDEO_URL);
+    });
+  }
+
+  /* iOS will not paint a frame from a video that has never been played, so nudge it
+     once on the first interaction and pause immediately. */
+  function unlock(){
+    var p = clip.play();
+    if (p && p.then) p.then(function(){ clip.pause(); }).catch(function(){});
+    else clip.pause();
+  }
+  ["touchstart","pointerdown","wheel","keydown"].forEach(function(ev){
+    window.addEventListener(ev, unlock, { once:true, passive:true });
+  });
+
+  /* Sections below the track get a plain reveal. The panels above never use this —
+     they are driven imperatively from the rAF loop. */
+  function reveals(){
+    var items = [].slice.call(document.querySelectorAll(".reveal"));
+    if (!("IntersectionObserver" in window) || !items.length) return;
+    document.documentElement.classList.add("js-reveal");
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target); }
+      });
+    }, { rootMargin: "0px 0px -12% 0px", threshold: 0.12 });
+    items.forEach(function(el){ io.observe(el); });
+  }
+
+  window.addEventListener("scroll", readScroll, { passive:true });
+  window.addEventListener("resize", readScroll);
+
+  readScroll();
+  paint();
+  reveals();
+  preload();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
