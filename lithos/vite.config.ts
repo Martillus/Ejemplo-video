@@ -4,5 +4,5 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 
 export default defineConfig(({ mode }) => ({
   plugins: mode === 'single' ? [react(), viteSingleFile()] : [react()],
-  build: mode === 'single' ? { outDir: 'dist-single' } : {},
+  build: mode === 'single' ? { outDir: 'site' } : {},
 }));

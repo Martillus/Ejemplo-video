@@ -6,7 +6,7 @@ Landing page for Lithos, a geology course. React 18 + TypeScript + Vite + Tailwi
 npm install
 npm run dev          # local dev server
 npm run build        # production build in dist/
-npm run build:single # one self-contained HTML file in dist-single/
+npm run build:single # one self-contained HTML file in site/ (committed, for sharing)
 ```
 
 ## What's on the page

@@ -1,6 +1,6 @@
 // Turns the single-file build into an artifact page body (the host adds its own <html>/<head>).
 import { readFileSync, writeFileSync } from 'node:fs';
-const html = readFileSync(new URL('../dist-single/index.html', import.meta.url), 'utf8');
+const html = readFileSync(new URL('../site/index.html', import.meta.url), 'utf8');
 const title = html.match(/<title>[\s\S]*?<\/title>/)[0];
 const styles = [...html.matchAll(/<style[^>]*>[\s\S]*?<\/style>/g)].map((m) => m[0]).join('\n');
 const scripts = [...html.matchAll(/<script[^>]*>[\s\S]*?<\/script>/g)].map((m) => m[0]).join('\n');
