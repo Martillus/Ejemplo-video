@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cyber Ronin // Neural Edges</title>
+<script>document.documentElement.classList.add('is-loading');</script>
 <link rel="stylesheet" href="https://db.onlinewebfonts.com/c/b1314443e183d1cdd77049077c46facc?family=Orbitron-Medium">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1004,6 +1005,247 @@
     .hero-copy h1.glitching { animation: none !important; }
   }
 
+  /* =====================  LOADER  ===================== */
+  html.is-loading { overflow: hidden; }
+
+  .is-loading .hero-image-animate,
+  .is-loading .hero-sweep,
+  .is-loading .hud-corner { animation-play-state: paused; }
+
+  .loader {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    place-items: center;
+    color: var(--cream);
+    overflow: hidden;
+  }
+
+  .is-loading .loader,
+  .loader.is-leaving { display: grid; }
+
+  .loader-shutter {
+    position: absolute;
+    left: 0; right: 0;
+    height: 50.5%;
+    background: var(--ink);
+    transition: transform 1s cubic-bezier(0.76, 0, 0.24, 1) 0.35s;
+  }
+
+  .loader-shutter.top { top: 0; }
+  .loader-shutter.bottom { bottom: 0; }
+
+  .loader-shutter::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(251, 219, 175, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(251, 219, 175, 0.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    animation: gridDrift 6s linear infinite;
+  }
+
+  .loader-shutter.top::after,
+  .loader-shutter.bottom::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--orange), transparent);
+    box-shadow: 0 0 16px 2px rgba(224, 112, 32, 0.7);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .loader-shutter.top::after { bottom: 0; }
+  .loader-shutter.bottom::after { top: 0; }
+
+  @keyframes gridDrift { to { background-position: 44px 44px; } }
+
+  .loader.is-leaving .loader-shutter.top { transform: translateY(-100%); }
+  .loader.is-leaving .loader-shutter.bottom { transform: translateY(100%); }
+  .loader.is-leaving .loader-shutter::after { opacity: 1; }
+
+  .loader-glow {
+    position: absolute;
+    width: 60vmin; height: 60vmin;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(224, 112, 32, 0.22), transparent 65%);
+    animation: glowPulse 2.4s ease-in-out infinite;
+    transition: opacity 0.4s ease;
+  }
+
+  @keyframes glowPulse { 50% { transform: scale(1.15); opacity: 0.7; } }
+
+  .loader-inner {
+    position: relative;
+    z-index: 2;
+    width: min(360px, calc(100% - 48px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.35s ease;
+  }
+
+  .loader.is-leaving .loader-inner,
+  .loader.is-leaving .loader-glow,
+  .loader.is-leaving .loader-hud { opacity: 0; filter: blur(6px); }
+  .loader.is-leaving .loader-inner { transform: scale(1.12); }
+
+  .loader-emblem {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    margin-bottom: 28px;
+  }
+
+  .loader-emblem svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+  .loader-hex {
+    stroke-dasharray: 260;
+    stroke-dashoffset: 260;
+    animation: drawHex 1.6s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    filter: drop-shadow(0 0 6px rgba(224, 112, 32, 0.8));
+  }
+
+  @keyframes drawHex { to { stroke-dashoffset: 0; } }
+
+  .loader-orbit { transform-origin: 50% 50%; animation: spin 3s linear infinite; }
+  .loader-orbit-r { transform-origin: 50% 50%; animation: spin 5s linear infinite reverse; }
+
+  .loader-core {
+    transform-origin: 50% 50%;
+    animation: corePulse 1s ease-in-out infinite;
+  }
+
+  @keyframes corePulse { 50% { transform: scale(1.6); opacity: 0.55; } }
+
+  .loader-brand {
+    font-family: 'Orbitron-Medium', 'Arial Narrow', sans-serif;
+    font-size: clamp(20px, 5vw, 28px);
+    letter-spacing: 0.22em;
+    text-indent: 0.22em;
+    white-space: nowrap;
+    text-shadow: 0 0 22px rgba(224, 112, 32, 0.55);
+  }
+
+  .loader-sub {
+    margin-top: 8px;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    text-indent: 0.4em;
+    text-transform: uppercase;
+    color: var(--label);
+  }
+
+  .loader-bar {
+    position: relative;
+    width: 100%;
+    height: 2px;
+    margin-top: 34px;
+    background: rgba(251, 219, 175, 0.1);
+    overflow: hidden;
+  }
+
+  .loader-bar i {
+    position: absolute;
+    inset: 0;
+    transform-origin: left;
+    transform: scaleX(0);
+    background: linear-gradient(90deg, var(--orange), var(--cream));
+    box-shadow: 0 0 12px rgba(224, 112, 32, 0.9);
+  }
+
+  .loader-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    animation: barShine 1.3s linear infinite;
+  }
+
+  @keyframes barShine { from { left: -30%; } to { left: 100%; } }
+
+  .loader-meta {
+    width: 100%;
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .loader-pct {
+    font-family: 'Orbitron-Medium', 'Arial Narrow', sans-serif;
+    font-size: 13px;
+    color: var(--cream);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .loader-log {
+    list-style: none;
+    width: 100%;
+    height: 78px;
+    margin-top: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 3px;
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 10.5px;
+    color: var(--label);
+    -webkit-mask-image: linear-gradient(transparent, #000 45%);
+    mask-image: linear-gradient(transparent, #000 45%);
+  }
+
+  .loader-log li { animation: logIn 0.25s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .loader-log li b { font-weight: 400; color: var(--orange); }
+
+  @keyframes logIn { from { opacity: 0; transform: translateX(-8px); } }
+
+  .loader-hud {
+    position: absolute;
+    z-index: 2;
+    font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--label);
+    transition: opacity 0.35s ease, filter 0.35s ease;
+  }
+  .loader-hud.tl { top: max(24px, env(safe-area-inset-top)); left: max(24px, env(safe-area-inset-left)); }
+  .loader-hud.br { bottom: max(24px, env(safe-area-inset-bottom)); right: max(24px, env(safe-area-inset-right)); text-align: right; }
+  .loader-hud .rec::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: var(--orange);
+    box-shadow: 0 0 8px var(--orange);
+    animation: blink 0.9s steps(2, end) infinite;
+  }
+
+  @media (max-width: 480px) {
+    .loader-hud.br { display: none; }
+    .loader-emblem { width: 92px; height: 92px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .loader-shutter, .loader-inner { transition: opacity 0.3s ease !important; }
+    .loader.is-leaving .loader-shutter { transform: none; opacity: 0; }
+    .loader-hex { stroke-dashoffset: 0; }
+    .loader-hex, .loader-orbit, .loader-orbit-r, .loader-core, .loader-glow,
+    .loader-shutter::before, .loader-bar::after { animation: none !important; }
+  }
+
   /* =====================  RESPONSIVE  ===================== */
   @media (max-width: 1024px) {
     .hero-ui { padding: 32px 28px 36px; }
@@ -1163,6 +1405,33 @@
 </style>
 </head>
 <body>
+
+<div class="loader" id="loader" role="status" aria-label="Loading Cyber Ronin">
+  <div class="loader-shutter top"></div>
+  <div class="loader-shutter bottom"></div>
+  <div class="loader-glow" aria-hidden="true"></div>
+  <div class="loader-hud tl" aria-hidden="true"><span class="rec">Sys // Ronin-X</span></div>
+  <div class="loader-hud br" aria-hidden="true">Drop 1/26<br>Neural Edges v1.26</div>
+
+  <div class="loader-inner">
+    <div class="loader-emblem" aria-hidden="true">
+      <svg viewBox="0 0 100 100" fill="none" stroke="currentColor">
+        <g class="loader-orbit"><circle cx="50" cy="50" r="48" stroke-width="0.8" stroke-dasharray="2 6" opacity="0.6"/></g>
+        <g class="loader-orbit-r"><circle cx="50" cy="50" r="41" stroke-width="1.4" stroke-dasharray="60 40 14 40" stroke="#E07020"/></g>
+        <path class="loader-hex" d="M50 18L77.7 34V66L50 82L22.3 66V34L50 18Z" stroke-width="1.6" stroke-linejoin="round"/>
+        <circle class="loader-core" cx="50" cy="50" r="4.5" fill="#E07020" stroke="none"/>
+      </svg>
+    </div>
+    <div class="loader-brand" id="loader-brand">CYBER RONIN</div>
+    <div class="loader-sub">Neural Edges</div>
+    <div class="loader-bar"><i id="loader-fill"></i></div>
+    <div class="loader-meta">
+      <span id="loader-status">Booting</span>
+      <span class="loader-pct" id="loader-pct">000</span>
+    </div>
+    <ul class="loader-log" id="loader-log" aria-hidden="true"></ul>
+  </div>
+</div>
 
 <div class="scroll-progress" id="scroll-progress" aria-hidden="true"></div>
 <div class="cursor-ring" id="cursor-ring" aria-hidden="true"></div>
@@ -1378,6 +1647,121 @@
 (function () {
   'use strict';
 
+  /* ---------- 0. Loader ---------- */
+  var readyQueue = [];
+  var isReady = false;
+  function onReady(fn) { if (isReady) fn(); else readyQueue.push(fn); }
+
+  (function loader() {
+    var root = document.documentElement;
+    var el = document.getElementById('loader');
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function open() {
+      if (isReady) return;
+      isReady = true;
+      if (el) el.classList.add('is-leaving');
+      root.classList.remove('is-loading');
+      readyQueue.forEach(function (fn) { fn(); });
+      setTimeout(function () { if (el && el.parentNode) el.parentNode.removeChild(el); }, 1600);
+    }
+
+    if (!el) { open(); return; }
+
+    var fill = document.getElementById('loader-fill');
+    var pctEl = document.getElementById('loader-pct');
+    var status = document.getElementById('loader-status');
+    var log = document.getElementById('loader-log');
+    var brand = document.getElementById('loader-brand');
+
+    /* Real asset loading: the three images and the fonts */
+    var assets = [];
+    document.querySelectorAll('[style*="background-image"]').forEach(function (node) {
+      var m = node.getAttribute('style').match(/url\(['"]?([^'")]+)['"]?\)/);
+      if (m && assets.indexOf(m[1]) === -1) assets.push(m[1]);
+    });
+    var total = assets.length + 1;
+    var done = 0;
+    function tick() { done++; }
+    assets.forEach(function (src) {
+      var img = new Image();
+      img.onload = img.onerror = tick;
+      img.src = src;
+    });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tick, tick); else tick();
+
+    /* Scrambled brand name */
+    var finalText = brand ? brand.textContent : '';
+    var glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/#<>*_';
+    var scrambleStart = performance.now();
+    function scramble(now) {
+      if (!brand) return;
+      var t = (now - scrambleStart) / 1300;
+      var out = '';
+      for (var i = 0; i < finalText.length; i++) {
+        var ch = finalText[i];
+        if (ch === ' ' || t * finalText.length > i + 2) out += ch;
+        else out += glyphs[Math.floor(Math.random() * glyphs.length)];
+      }
+      brand.textContent = out;
+      if (t < 1.25) requestAnimationFrame(scramble); else brand.textContent = finalText;
+    }
+    if (!reduceMotion) requestAnimationFrame(scramble);
+
+    /* Boot log */
+    var lines = [
+      ['Neural link', 'handshake'],
+      ['R1 Ronin Engine', 'online'],
+      ['Pulse-OLED 8K', 'calibrated'],
+      ['Reflex bus 144Hz', 'locked'],
+      ['Shadow Shell', 'armed'],
+      ['Optics', 'focused'],
+      ['Reality shift', 'ready']
+    ];
+    var statuses = ['Booting', 'Linking', 'Calibrating', 'Syncing', 'Arming', 'Ready'];
+    var logged = 0;
+    function addLine(i) {
+      if (!log || !lines[i]) return;
+      var li = document.createElement('li');
+      li.innerHTML = '&gt; ' + lines[i][0] + ' <b>[' + lines[i][1] + ']</b>';
+      log.appendChild(li);
+      while (log.children.length > 6) log.removeChild(log.firstChild);
+    }
+
+    var minTime = reduceMotion ? 600 : 2600;
+    var maxTime = 7000;
+    var start = performance.now();
+    var shown = 0;
+
+    (function step(now) {
+      var elapsed = now - start;
+      var timeP = Math.min(elapsed / minTime, 1);
+      var loadP = done / total;
+      /* The bar follows time, but waits at 90% until assets are in (or the max wait passes) */
+      var target = Math.min(timeP, loadP >= 1 || elapsed > maxTime ? 1 : 0.9 + loadP * 0.09);
+      shown += (target - shown) * 0.12;
+      if (target === 1 && 1 - shown < 0.004) shown = 1;
+
+      var pct = Math.round(shown * 100);
+      if (fill) fill.style.transform = 'scaleX(' + shown.toFixed(3) + ')';
+      if (pctEl) pctEl.textContent = ('00' + pct).slice(-3);
+      if (status) status.textContent = statuses[Math.min(Math.floor(shown * statuses.length), statuses.length - 1)];
+      while (logged < Math.floor(shown * lines.length)) addLine(logged++);
+
+      if (shown >= 1) {
+        if (logged < lines.length) addLine(logged++);
+        setTimeout(open, reduceMotion ? 100 : 380);
+        return;
+      }
+      requestAnimationFrame(step);
+    })(start);
+
+    /* Safety net: never trap the visitor */
+    setTimeout(open, maxTime + 2500);
+  })();
+
+  onReady(startReveals);
+
   /* ---------- 1. Spotlight reveal ---------- */
   var reveal = document.getElementById('reveal-img');
 
@@ -1457,6 +1841,7 @@
     el.classList.add('is-visible');
   }
 
+  function startReveals() {
   if (!('IntersectionObserver' in window)) {
     words.forEach(function (el) { el.classList.add('words-visible'); });
     fades.forEach(showFade);
@@ -1481,6 +1866,7 @@
 
     words.forEach(function (el) { wordObserver.observe(el); });
     fades.forEach(function (el) { fadeObserver.observe(el); });
+  }
   }
 
   /* ---------- FX ---------- */
@@ -1580,10 +1966,12 @@
       if (e.target === h1) h1.classList.remove('glitching');
     });
     h1.addEventListener('mouseenter', glitch);
-    setTimeout(function () {
-      glitch();
-      setInterval(function () { if (Math.random() > 0.35) glitch(); }, 3800);
-    }, 2600);
+    onReady(function () {
+      setTimeout(function () {
+        glitch();
+        setInterval(function () { if (Math.random() > 0.35) glitch(); }, 3800);
+      }, 2600);
+    });
   }
 
   /* Tilt + glow on module cards */
