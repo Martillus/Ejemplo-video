@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { bg1, bg2 } from '../constants';
+import { heroBefore, heroAfter } from '../constants';
 import { useScrollY } from '../hooks/useScroll';
 import MagneticButton from './MagneticButton';
 
@@ -63,7 +63,7 @@ function RevealLayer({ image, cursorX, cursorY }: RevealLayerProps) {
       />
       <div
         ref={revealRef}
-        className="absolute inset-0 bg-center bg-cover bg-no-repeat z-30 pointer-events-none"
+        className="absolute inset-0 bg-bottom bg-contain bg-no-repeat bg-black z-30 pointer-events-none"
         style={{ backgroundImage: image }}
       />
     </>
@@ -126,8 +126,8 @@ export default function Hero() {
         style={{ transform: `translate3d(0, ${scrollY * 0.35}px, 0)` }}
       >
         <div
-          className="absolute inset-0 bg-center bg-cover bg-no-repeat hero-zoom"
-          style={{ backgroundImage: bg1 }}
+          className="absolute inset-0 bg-bottom bg-contain bg-no-repeat hero-zoom origin-bottom"
+          style={{ backgroundImage: `url("${heroBefore}")` }}
         />
       </div>
 
@@ -136,7 +136,7 @@ export default function Hero() {
         className="absolute inset-0 z-30 pointer-events-none"
         style={{ transform: `translate3d(0, ${scrollY * 0.35}px, 0)` }}
       >
-        <RevealLayer image={bg2} cursorX={cursorPos.x} cursorY={cursorPos.y + scrollY * 0.65} />
+        <RevealLayer image={`url("${heroAfter}")`} cursorX={cursorPos.x} cursorY={cursorPos.y + scrollY * 0.65} />
       </div>
 
       {/* Soft vignette so white type always reads */}

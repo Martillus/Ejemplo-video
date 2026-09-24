@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Scissors } from 'lucide-react';
-import { BG_IMAGE_1, BG_IMAGE_2 } from '../constants';
+import { heroBefore, heroAfter } from '../constants';
 
 const WORD = 'Kutters';
 const MIN_MS = 2600;
@@ -23,7 +23,7 @@ export default function Loader({ onReveal, onDone }: Props) {
 
   useEffect(() => {
     let assetsReady = false;
-    Promise.all([preload(BG_IMAGE_1), preload(BG_IMAGE_2), document.fonts?.ready]).then(() => {
+    Promise.all([preload(heroBefore), preload(heroAfter), document.fonts?.ready]).then(() => {
       assetsReady = true;
     });
 
