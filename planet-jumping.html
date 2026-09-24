@@ -1,0 +1,1631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planet Jumping</title>
+<meta name="description" content="Jump from Mars to Earth to Venus through a tilting portal, then explore the inner Solar System.">
+<style>
+/* ════════════════════════════════════════════════════════════════
+   FONTS
+   ════════════════════════════════════════════════════════════════ */
+@font-face{font-family:'SF Pro';font-style:normal;font-weight:400;font-display:swap;
+  src:local('SF Pro Text'),local('SF Pro'),local('SFProText-Regular'),local('SF Pro Display')}
+@font-face{font-family:'SF Pro';font-style:normal;font-weight:700;font-display:swap;
+  src:local('SF Pro Text Bold'),local('SF Pro Bold'),local('SFProText-Bold'),local('SF Pro Display Bold')}
+@font-face{font-family:'SF Pro Thin';font-style:normal;font-weight:100;font-display:swap;
+  src:local('SF Pro Display Thin'),local('SF Pro Thin'),local('SFProDisplay-Thin')}
+@font-face{font-family:'Aalto';font-style:normal;font-weight:400;font-display:swap;
+  src:local('Aalto'),local('Aalto Regular'),local('Aalto-Regular')}
+
+:root{
+  font-family:'SF Pro',Arial,sans-serif;color:#fff;background:#090807;font-synthesis:none;
+  color-scheme:dark;
+  --bg:#090807; --bg-2:#110f0d; --ink:#f4efe8; --muted:rgba(244,239,232,.6);
+  --line:rgba(244,239,232,.16); --accent:#e2703a; --accent-soft:rgba(226,112,58,.22);
+  --display:Aalto,'Arial Narrow','Roboto Condensed','Avenir Next Condensed','DejaVu Sans Condensed',sans-serif;
+  --gutter:clamp(18px,4vw,58px); --vh:1vh; --hp:0;
+}
+body[data-planet="earth"]{--accent:#6fb6ff;--accent-soft:rgba(111,182,255,.22)}
+body[data-planet="venus"]{--accent:#efc07a;--accent-soft:rgba(239,192,122,.22)}
+
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:#090807;color:#fff;font-family:'SF Pro',Arial,sans-serif;font-size:16px}
+html,body,button,a,.portal{cursor:none!important}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* the page scrolls inside this layer so html/body never show a scrollbar */
+.site{position:fixed;inset:0;overflow-x:hidden;overflow-y:auto;scrollbar-width:none;overscroll-behavior:none}
+.site::-webkit-scrollbar{width:0;height:0;display:none}
+body:not(.preload-complete) .site,body.is-busy .site,body.menu-open .site{overflow-y:hidden}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO — the portal experience
+   ════════════════════════════════════════════════════════════════ */
+.experience{position:relative;width:100%;height:100%;min-height:540px;overflow:hidden;background:#0a0908}
+.backgrounds,.background,.shade,.transition-layer,.transition-layer video{position:absolute;inset:0;width:100%;height:100%}
+.background{object-fit:cover;opacity:0;transition:opacity .8s ease}
+.background.is-visible{opacity:1}
+.shade{z-index:1;background:linear-gradient(to bottom,transparent 52%,rgba(0,0,0,.88) 100%);pointer-events:none}
+.chrome{position:absolute;z-index:4;transition:opacity .45s ease,filter .45s ease}
+.experience.is-transitioning .chrome{opacity:0;filter:blur(8px);pointer-events:none}
+
+/* header (fixed so it doubles as the site navigation) */
+.header{left:clamp(18px,1.95vw,28px);right:clamp(18px,1.95vw,28px);top:clamp(18px,3.1vh,28px);
+  display:flex;justify-content:space-between;align-items:center}
+.header.chrome{position:fixed;z-index:30}
+.header-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.nav{display:flex;align-items:center;height:42px;padding:4px 5px;border:1px solid rgba(255,255,255,.45);
+  background:rgba(255,255,255,.1);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:999px;
+  transition:background .4s ease,border-color .4s ease}
+.header.is-scrolled .nav{background:rgba(9,8,7,.5);border-color:rgba(255,255,255,.28)}
+.nav a{color:#fff;text-decoration:none;padding:8px 19px;border-radius:999px;line-height:1;transition:background .35s ease,color .35s ease}
+.nav a.active{background:#fff;color:#000}
+.menu{height:42px;padding:0 20px;border:0;border-radius:999px;background:#fff;color:#000;cursor:pointer;
+  transition:background .3s ease,color .3s ease,translate .4s cubic-bezier(.22,1,.36,1)}
+.menu-open .menu{background:var(--accent);color:#000}
+
+/* sidebar */
+.planet-list{left:clamp(18px,1.95vw,28px);top:50%;transform:translateY(-43%);display:flex;flex-direction:column;gap:6px;font-size:16px;
+  translate:calc(var(--hp) * -70px) 0}
+.planet-item{display:flex;align-items:center;min-height:20px}
+.planet-item.active{font-size:18px;font-weight:700;gap:8px}
+.planet-item.active:before{content:'';width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 18px var(--accent)}
+
+/* portal */
+.portal-wrap{left:50%;top:50%;width:min(320px,31vw);transform:translate(-50%,-54%);perspective:none;
+  translate:0 calc(var(--hp) * 110px)}
+.portal-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:16px;opacity:0}
+.portal-heading strong{font-size:18px;margin-left:8px}
+.portal{position:relative;display:block;width:100%;aspect-ratio:320/350;padding:0;overflow:visible;border:0;
+  border-radius:90px;background:transparent;cursor:pointer;box-shadow:none;transform:none!important}
+.portal:focus-visible{outline-offset:8px}
+.portal video,.portal img{visibility:hidden;position:absolute;width:1px;height:1px;pointer-events:none}
+.portal-canvas{position:fixed;inset:0;z-index:3;width:100%;height:100%;pointer-events:none}
+
+/* title + facts */
+.planet-content{left:clamp(28px,4vw,58px);right:clamp(28px,3vw,44px);bottom:clamp(24px,3vh,30px);
+  display:flex;justify-content:space-between;align-items:flex-end;gap:40px;translate:0 calc(var(--hp) * -150px)}
+.planet-content h1{font-family:Aalto,'Arial Narrow','Roboto Condensed','Avenir Next Condensed','DejaVu Sans Condensed',sans-serif;
+  font-size:clamp(128px,21.8vw,314px);font-weight:400;line-height:.72;margin:0 0 -.04em;
+  letter-spacing:calc(var(--hp) * .14em);transform:translateX(-32px);opacity:0;white-space:nowrap}
+.planet-content dl{width:min(447px,34vw);margin:0;font-size:16px;flex-shrink:0}
+.fact{display:grid;grid-template-columns:138px 1fr;gap:18px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.48);opacity:0}
+.fact:last-child{border-bottom:0}
+.fact dt{font-weight:700}
+.fact dd{margin:0}
+
+/* misc */
+.transition-layer{display:none}
+.scene-canvas{display:none}
+.loading{position:absolute;z-index:12;left:50%;bottom:30px;transform:translateX(-50%);opacity:0;font-size:12px;
+  letter-spacing:.14em;text-transform:uppercase;transition:opacity .2s}
+.experience.is-loading .loading{opacity:.8}
+.experience.is-transitioning .header,.experience.is-transitioning .planet-list{opacity:1;filter:none;pointer-events:auto}
+.experience.is-transitioning .shade{opacity:1}
+.experience.is-committing .background{transition:none!important}
+
+.scroll-cue{right:clamp(18px,1.95vw,28px);top:50%;display:flex;flex-direction:column;align-items:center;gap:14px;
+  transform:translateY(-50%);font-size:11px;letter-spacing:.24em;text-transform:uppercase;opacity:0}
+.scroll-cue span{writing-mode:vertical-rl}
+.scroll-cue i{position:relative;display:block;width:1px;height:64px;background:rgba(255,255,255,.25);overflow:hidden}
+.scroll-cue i:after{content:'';position:absolute;left:0;top:0;width:1px;height:40%;background:#fff;animation:cue 1.8s cubic-bezier(.65,0,.35,1) infinite}
+.intro-ready .scroll-cue{animation:fade-in 1s ease 1.4s both}
+@keyframes cue{from{transform:translateY(-100%)}to{transform:translateY(260%)}}
+@keyframes fade-in{from{opacity:0}to{opacity:.75}}
+
+/* ════════════════════════════════════════════════════════════════
+   PRELOADER
+   ════════════════════════════════════════════════════════════════ */
+.preloader{position:absolute;inset:0;z-index:20;background:#000;overflow:hidden;will-change:transform}
+.preloader video,.preloader canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.preloader canvas{display:none}
+.preloader.is-procedural canvas{display:block}
+.preloader.is-procedural video{display:none}
+.preloader-shade{position:absolute;inset:auto 0 0;height:35%;background:linear-gradient(to bottom,transparent,#000)}
+.preloader.is-background{z-index:0}
+.preloader.is-background .preloader-shade{opacity:0}
+.floating-logo{position:fixed;z-index:22;left:50%;top:50%;width:59px;height:58px;transform:translate(-50%,-50%);
+  will-change:left,top,width,height,transform;
+  transition:left 2s cubic-bezier(.16,1,.3,1),top 2s cubic-bezier(.16,1,.3,1),width 2s cubic-bezier(.16,1,.3,1),
+             height 2s cubic-bezier(.16,1,.3,1),transform 2s cubic-bezier(.16,1,.3,1)}
+.floating-logo.is-docked{left:clamp(18px,1.95vw,28px);top:clamp(18px,3.1vh,28px);width:37px;height:36px;transform:none}
+.floating-logo.is-settled{z-index:31}
+body:not(.preload-complete) .floating-logo{animation:logo-breathe 1.6s ease-in-out infinite}
+@keyframes logo-breathe{50%{filter:drop-shadow(0 0 14px rgba(255,255,255,.55))}}
+.preloader-count{position:fixed;z-index:22;left:50%;bottom:clamp(22px,3.1vh,28px);display:flex;align-items:flex-end;gap:4px;
+  transform:translateX(-50%);font-family:'SF Pro',Arial,sans-serif;line-height:1;font-variant-numeric:tabular-nums}
+.preloader-count>span:first-child{font-family:'SF Pro Thin','SF Pro',Arial,sans-serif;font-size:64px;font-weight:100}
+.preloader-count .percent{font-size:24px;padding-bottom:4px}
+.preloader-count.is-leaving{animation:preload-count-out .75s cubic-bezier(.22,1,.36,1) both}
+@keyframes preload-count-out{to{opacity:0;filter:blur(7px);transform:translate(-50%,-34px)}}
+body:not(.preload-complete) .custom-cursor{opacity:0!important}
+
+/* ════════════════════════════════════════════════════════════════
+   CURSOR
+   ════════════════════════════════════════════════════════════════ */
+.custom-cursor{display:block;position:fixed;left:0;top:0;z-index:100;width:1px;height:1px;pointer-events:none;opacity:0;
+  transition:opacity .2s ease;mix-blend-mode:difference}
+.custom-cursor.is-visible{opacity:1}
+.cursor-dot,.cursor-orbit{position:absolute;left:0;top:0;border-radius:50%;transform:translate(-50%,-50%)}
+.cursor-dot{width:12px;height:12px;background:#fff}
+.cursor-orbit{width:36px;height:36px;border:1px solid #fff;background:rgba(255,255,255,.4);transition:transform .3s cubic-bezier(.22,1,.36,1)}
+.custom-cursor.is-enter .cursor-orbit{transform:translate(-50%,-50%) scale(1.16)}
+.custom-cursor.is-press .cursor-orbit{transform:translate(-50%,-50%) scale(.8)}
+.cursor-label{position:absolute;top:26px;left:0;transform:translateX(-50%) translateY(-4px);font:16px/1.2 'SF Pro',Arial,sans-serif;
+  white-space:nowrap;opacity:0;transition:opacity .2s ease,transform .3s cubic-bezier(.22,1,.36,1)}
+.custom-cursor.is-enter .cursor-label{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (hover:none){.custom-cursor{display:none}}
+
+/* ════════════════════════════════════════════════════════════════
+   ENTRANCE / SWITCH ANIMATIONS
+   ════════════════════════════════════════════════════════════════ */
+body:not(.intro-ready) .header,.planet-list,.planet-content h1,.planet-content .fact{opacity:0}
+.intro-ready .header{animation:reveal-down .9s cubic-bezier(.22,1,.36,1) .1s both}
+.intro-ready .planet-list{animation:reveal-side .9s cubic-bezier(.22,1,.36,1) .65s both}
+.content-revealing h1{animation:title-rise 1.05s cubic-bezier(.16,1,.3,1) both}
+.content-revealing .fact{animation:fact-rise .72s cubic-bezier(.22,1,.36,1) both}
+.content-revealing .fact:nth-child(1){animation-delay:.52s}
+.content-revealing .fact:nth-child(2){animation-delay:.68s}
+.content-revealing .fact:nth-child(3){animation-delay:.84s}
+.content-revealing .fact:nth-child(4){animation-delay:1s}
+.mask-revealing .portal-heading{animation:portal-caption .85s cubic-bezier(.22,1,.36,1) both}
+.planet-list.is-switching .planet-item{animation:menu-row .58s cubic-bezier(.22,1,.36,1) both}
+.planet-list.is-switching .planet-item:nth-child(1){animation-delay:.02s}
+.planet-list.is-switching .planet-item:nth-child(2){animation-delay:.05s}
+.planet-list.is-switching .planet-item:nth-child(3){animation-delay:.08s}
+.planet-list.is-switching .planet-item:nth-child(4){animation-delay:.11s}
+.planet-list.is-switching .planet-item:nth-child(5){animation-delay:.14s}
+.planet-list.is-switching .planet-item:nth-child(6){animation-delay:.17s}
+.planet-list.is-switching .planet-item:nth-child(7){animation-delay:.2s}
+.planet-list.is-switching .planet-item:nth-child(8){animation-delay:.23s}
+.planet-list.is-switching .planet-item.active:before{animation:active-dot .55s cubic-bezier(.22,1,.36,1) .18s both}
+
+@keyframes reveal-down{from{opacity:0;filter:blur(8px);transform:translateY(-18px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+@keyframes reveal-side{from{opacity:0;filter:blur(8px);transform:translate(-20px,-43%)}to{opacity:1;filter:blur(0);transform:translate(0,-43%)}}
+@keyframes title-rise{from{opacity:0;filter:blur(12px);transform:translate(-32px,42px)}to{opacity:1;filter:blur(0);transform:translate(-32px,0)}}
+@keyframes fact-rise{from{opacity:0;filter:blur(7px);transform:translateY(18px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+@keyframes portal-caption{from{opacity:0;filter:blur(7px);transform:translateY(22px)}to{opacity:1;filter:blur(0);transform:translateY(0)}}
+@keyframes menu-row{from{opacity:.35;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes active-dot{from{opacity:0;transform:scale(0)}to{opacity:1;transform:scale(1)}}
+
+/* ════════════════════════════════════════════════════════════════
+   GLOBAL OVERLAYS — progress bar, grain, menu
+   ════════════════════════════════════════════════════════════════ */
+.progress{position:fixed;left:0;top:0;z-index:40;width:100%;height:2px;background:var(--accent);transform-origin:0 50%;
+  transform:scaleX(0);pointer-events:none;box-shadow:0 0 12px var(--accent)}
+.grain{position:fixed;inset:-50%;z-index:90;width:200%;height:200%;pointer-events:none;opacity:.07;
+  animation:grain 1.2s steps(6) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-4%,3%)}40%{transform:translate(3%,-5%)}
+  60%{transform:translate(-2%,5%)}80%{transform:translate(5%,1%)}100%{transform:translate(0,0)}}
+
+.menu-overlay{position:fixed;inset:0;z-index:28;display:flex;flex-direction:column;justify-content:center;gap:40px;
+  padding:0 var(--gutter);background:rgba(9,8,7,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  clip-path:circle(0px at calc(100% - 64px) 48px);visibility:hidden;
+  transition:clip-path .85s cubic-bezier(.76,0,.24,1),visibility 0s linear .85s}
+.menu-open .menu-overlay{clip-path:circle(150vmax at calc(100% - 64px) 48px);visibility:visible;
+  transition:clip-path .85s cubic-bezier(.76,0,.24,1),visibility 0s}
+.menu-links{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.menu-links a{display:inline-flex;align-items:baseline;gap:18px;font-family:var(--display);text-transform:uppercase;
+  font-size:clamp(64px,11vw,150px);line-height:.86;color:transparent;-webkit-text-stroke:1px var(--ink);text-decoration:none;
+  opacity:0;transform:translateY(60px) skewY(4deg);transition:opacity .6s ease,transform .8s cubic-bezier(.22,1,.36,1),color .35s ease}
+.menu-links a small{font:14px 'SF Pro',Arial,sans-serif;-webkit-text-stroke:0;color:var(--muted);letter-spacing:.1em}
+.menu-links a:hover,.menu-links a:focus-visible{color:var(--ink)}
+.menu-open .menu-links a{opacity:1;transform:none;transition-delay:calc(.3s + var(--i) * .07s)}
+.menu-foot{display:flex;flex-wrap:wrap;gap:12px 32px;color:var(--muted);font-size:14px;opacity:0;transition:opacity .5s ease}
+.menu-open .menu-foot{opacity:1;transition-delay:.7s}
+.menu-foot b{color:var(--ink);font-weight:700}
+
+/* ════════════════════════════════════════════════════════════════
+   SECTIONS
+   ════════════════════════════════════════════════════════════════ */
+.section{position:relative;z-index:2;padding:clamp(96px,15vh,170px) var(--gutter);background:var(--bg);color:var(--ink)}
+.eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 28px;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.eyebrow:before{content:'';width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);transition:background .6s ease}
+.display{font-family:var(--display);font-weight:400;text-transform:uppercase;line-height:.82;letter-spacing:0;margin:0;text-wrap:balance}
+
+html.js-reveal .reveal{opacity:0;transform:translateY(46px);filter:blur(8px);
+  transition:opacity 1s cubic-bezier(.22,1,.36,1) var(--d,0s),transform 1.1s cubic-bezier(.22,1,.36,1) var(--d,0s),filter 1s ease var(--d,0s)}
+html.js-reveal .reveal.is-in{opacity:1;transform:none;filter:none}
+
+/* about */
+.about{background:linear-gradient(#000,var(--bg) 280px);overflow:hidden;min-height:calc(var(--vh) * 100)}
+.about-orbits{position:absolute;right:-12vw;top:50%;width:min(980px,92vw);aspect-ratio:1;transform:translateY(-50%);pointer-events:none;opacity:.9}
+.about-orbits span{position:absolute;left:50%;top:50%;border:1px solid var(--line);border-radius:50%;
+  transform:translate(-50%,-50%) rotate(calc(var(--ap,0) * var(--spin) * 1deg))}
+.about-orbits span:after{content:'';position:absolute;left:50%;top:-4px;width:8px;height:8px;margin-left:-4px;border-radius:50%;
+  background:var(--ink);box-shadow:0 0 14px var(--ink)}
+.about-orbits span:nth-child(1){width:34%;height:34%;--spin:260}
+.about-orbits span:nth-child(2){width:58%;height:58%;--spin:-170}
+.about-orbits span:nth-child(2):after{background:var(--accent);box-shadow:0 0 18px var(--accent)}
+.about-orbits span:nth-child(3){width:82%;height:82%;--spin:110}
+.about-orbits span:nth-child(4){width:100%;height:100%;--spin:-60;border-style:dashed}
+.about-orbits b{position:absolute;left:50%;top:50%;width:9%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);
+  background:radial-gradient(circle at 38% 36%,#fff6dc,#ffc56a 38%,#d86a1e 70%,transparent 72%);
+  box-shadow:0 0 80px 20px rgba(255,170,80,.35)}
+.about-inner{position:relative;max-width:1100px}
+.scrub{font-size:clamp(28px,4.3vw,62px);line-height:1.08;font-weight:400;margin:0;max-width:22ch;text-wrap:pretty}
+.scrub .w{opacity:.14;transition:opacity .4s ease,color .4s ease}
+.scrub .w.on{opacity:1}
+.scrub .w.hl.on{color:var(--accent)}
+.stats{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(16px,3vw,40px);margin-top:clamp(64px,10vh,120px)}
+.stat{padding-top:18px;border-top:1px solid var(--line)}
+.stat-num{display:block;font-family:var(--display);font-size:clamp(64px,8.4vw,128px);line-height:.85;font-variant-numeric:tabular-nums}
+.stat-num small{font-size:.34em;margin-left:.1em;color:var(--accent)}
+.stat-label{display:block;margin-top:12px;color:var(--muted);font-size:15px;line-height:1.4;max-width:24ch}
+
+/* explore — sticky horizontal track */
+.explore{position:relative;z-index:2;height:calc(var(--vh) * 420);background:var(--bg);color:var(--ink)}
+.explore-sticky{position:sticky;top:0;height:calc(var(--vh) * 100);min-height:540px;overflow:hidden;display:flex;flex-direction:column}
+.explore-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding:clamp(84px,12vh,120px) var(--gutter) 0}
+.explore-head .eyebrow{margin-bottom:18px}
+.explore-head h2{font-size:clamp(56px,8vw,120px)}
+.explore-meter{display:flex;align-items:center;gap:14px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+.explore-meter i{position:relative;display:block;width:clamp(80px,14vw,200px);height:1px;background:var(--line)}
+.explore-meter i b{position:absolute;inset:0;background:var(--ink);transform-origin:0 50%;transform:scaleX(var(--ep,0))}
+.explore-track{flex:1;display:flex;align-items:center;gap:clamp(24px,5vw,80px);width:max-content;padding:0 var(--gutter);will-change:transform}
+.route{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:clamp(20px,4vw,64px);
+  width:min(1080px,84vw);height:min(560px,62vh)}
+.route-ghost{position:absolute;left:-2%;top:50%;z-index:0;font-family:var(--display);text-transform:uppercase;
+  font-size:clamp(160px,27vw,440px);line-height:.8;color:transparent;-webkit-text-stroke:1px rgba(244,239,232,.1);
+  translate:var(--gx,0) -50%;white-space:nowrap;pointer-events:none}
+.route-visual{position:relative;z-index:1;height:100%;display:grid;place-items:center;translate:var(--vx,0) 0;
+  transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .6s cubic-bezier(.22,1,.36,1)}
+.route-visual canvas{width:min(100%,56vh);aspect-ratio:1;display:block}
+.route-order{position:absolute;left:4%;top:6%;font-family:var(--display);font-size:clamp(36px,4vw,56px);color:var(--muted)}
+.route-body{position:relative;z-index:1;max-width:460px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 14px;border:1px solid var(--line);border-radius:999px;
+  font-size:13px;letter-spacing:.06em;color:var(--muted);transition:all .4s ease}
+.chip:before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.route.is-current .chip{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.route.is-next .chip{border-color:var(--ink);color:var(--ink)}
+.route h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(72px,9vw,150px);line-height:.8;margin:18px 0 16px}
+.route p{margin:0;color:var(--muted);line-height:1.55;max-width:46ch}
+.route-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:24px 0 28px}
+.route-stats div{padding:10px 0;border-top:1px solid var(--line)}
+.route-stats dt{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.route-stats dd{margin:4px 0 0;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.pill-btn{display:inline-flex;align-items:center;gap:12px;height:48px;padding:0 24px;border:1px solid var(--ink);border-radius:999px;
+  background:transparent;color:var(--ink);font-size:15px;transition:background .35s ease,color .35s ease,translate .4s cubic-bezier(.22,1,.36,1)}
+.pill-btn:hover,.pill-btn:focus-visible{background:var(--ink);color:#000}
+.pill-btn svg{width:16px;height:16px;transition:transform .35s ease}
+.pill-btn:hover svg{transform:translateX(4px)}
+.pill-btn.is-primary{background:var(--ink);color:#000}
+.pill-btn.is-primary:hover{background:var(--accent)}
+
+/* planets */
+.planets{overflow:hidden}
+.planets-head{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px 60px;align-items:end}
+.planets-head h2{font-size:clamp(64px,10vw,160px)}
+.planets-head p{margin:0;color:var(--muted);font-size:17px;line-height:1.55;max-width:44ch}
+.planets-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(24px,5vw,80px);align-items:center;margin-top:clamp(40px,7vh,80px)}
+.orbit-wrap{position:relative;width:100%;max-width:780px;aspect-ratio:1;margin-inline:auto}
+.orbit-wrap canvas{display:block;width:100%;height:100%}
+.orbit-tip{position:absolute;left:0;top:0;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(9,8,7,.78);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:13px;white-space:nowrap;pointer-events:none;
+  transition:opacity .25s ease;will-change:transform}
+.orbit-tip strong{display:block;font-size:15px;margin-bottom:2px}
+.orbit-tip em{font-style:normal;color:var(--accent)}
+.orbit-tip span{color:var(--muted);font-variant-numeric:tabular-nums}
+.orbit-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.orbit-row{display:grid;grid-template-columns:18px minmax(0,1fr) auto auto;align-items:center;gap:16px;width:100%;padding:14px 6px;
+  border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;font-variant-numeric:tabular-nums;
+  transition:background .3s ease,padding .4s cubic-bezier(.22,1,.36,1)}
+.orbit-row .dot{width:10px;height:10px;border-radius:50%}
+.orbit-row .nm{font-size:18px}
+.orbit-row .au,.orbit-row .yr{color:var(--muted);font-size:14px;min-width:7ch;text-align:right}
+.orbit-row.is-active{background:rgba(244,239,232,.06);padding-left:14px}
+.orbit-row.is-active .nm{font-weight:700}
+.orbit-row.is-here .nm:after{content:'You are here';margin-left:10px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.orbit-note{margin:18px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+
+/* finale */
+.finale{position:relative;z-index:2;background:var(--bg);color:var(--ink);overflow:hidden;padding-top:clamp(40px,8vh,90px)}
+.marquee{overflow:hidden;border-block:1px solid var(--line);padding:clamp(14px,2vh,24px) 0}
+.marquee-track{display:flex;width:max-content;will-change:transform}
+.marquee-track span{display:inline-flex;align-items:center;gap:.28em;padding-right:.28em;font-family:var(--display);text-transform:uppercase;
+  font-size:clamp(84px,14vw,220px);line-height:.9;white-space:nowrap}
+.marquee-track span:nth-child(even){color:transparent;-webkit-text-stroke:1px var(--ink)}
+.marquee-track span i{display:inline-block;width:.14em;height:.14em;border-radius:50%;background:var(--accent)}
+.finale-inner{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:32px;padding:clamp(80px,14vh,150px) var(--gutter) clamp(60px,10vh,110px)}
+.finale-inner h2{font-size:clamp(64px,9vw,150px);max-width:10ch}
+.finale-inner p{margin:0 0 20px;color:var(--muted);font-size:17px;line-height:1.55;max-width:38ch}
+.footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 24px;padding:24px var(--gutter) calc(28px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+.footer b{color:var(--ink)}
+
+/* ════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════ */
+@media(max-width:900px){
+  .nav{display:none}
+  .portal-wrap{width:min(300px,48vw)}
+  .planet-content h1{font-size:clamp(105px,24vw,190px)}
+  .planet-content dl{width:43vw}
+  .fact{grid-template-columns:110px 1fr}
+  .planet-list{font-size:14px}
+  .planet-item.active{font-size:16px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:40px}
+  .planets-head,.planets-grid{grid-template-columns:minmax(0,1fr)}
+  .route{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;height:min(720px,72vh);gap:12px}
+  .route-visual canvas{width:auto;height:100%;max-height:34vh}
+  .route h3{font-size:clamp(64px,14vw,110px);margin:12px 0 10px}
+  .route-stats{margin:16px 0 18px}
+  .route-body p{font-size:15px}
+}
+@media(max-width:640px){
+  .experience{min-height:600px}
+  .planet-list{display:none}
+  .scroll-cue{display:none}
+  .portal-wrap{top:44%;width:min(260px,66vw)}
+  .planet-content{left:18px;right:18px;bottom:18px;display:block}
+  .planet-content h1{font-size:clamp(98px,30vw,160px);margin-bottom:20px}
+  .planet-content dl{width:100%;font-size:13px}
+  .fact{grid-template-columns:92px 1fr;padding:5px 0}
+  .portal-heading{font-size:14px}
+  .portal-heading strong{font-size:16px}
+  .menu{height:38px}
+  .portal{border-radius:70px}
+  .explore-head{padding-top:80px}
+  .explore-meter{display:none}
+  .route{width:86vw;height:min(700px,74vh)}
+  .route-body p{display:none}
+  .route-stats dd{font-size:15px}
+  .orbit-row{gap:10px}
+  .orbit-row .nm{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  *{transition-duration:.01ms!important}
+  .portal{transform:none!important}
+  .grain,.scroll-cue i:after{animation:none}
+}
+</style>
+</head>
+<body data-planet="mars">
+<div class="site" id="site">
+
+<main class="experience" data-planet="mars">
+  <div class="backgrounds" aria-hidden="true">
+    <video id="mars-background" class="background is-visible" src="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/3c83091e-4046-4fd6-adbb-2edb728be79a.mp4" muted playsinline preload="auto"></video>
+    <video id="earth-background" class="background" src="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/fc3ded42-e845-41f3-a830-5cab512d79cd.mp4" muted playsinline preload="auto"></video>
+    <video id="venus-background" class="background" src="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/b30f64d9-1637-477a-83df-d0fc6461a422.mp4" muted playsinline preload="auto"></video>
+  </div>
+  <div class="preloader" id="preloader" aria-label="Loading Mars">
+    <video id="preloader-video" src="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/5fc5651c-3b5d-4171-b507-87f7e635d1b4.mp4" muted playsinline preload="auto"></video>
+    <canvas id="preloader-canvas" aria-hidden="true"></canvas>
+    <div class="preloader-shade"></div>
+  </div>
+  <img class="floating-logo" id="floating-logo" src="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/eb7e0f53-50cd-4af5-abc4-8b9a52cdc01b.svg" alt="Ubernatural">
+  <div class="preloader-count" id="preloader-count" aria-live="polite">
+    <span id="preloader-value">0</span><span class="percent">%</span>
+  </div>
+  <canvas id="scene-canvas" class="scene-canvas" aria-hidden="true"></canvas>
+  <div class="shade" aria-hidden="true"></div>
+
+  <header class="header chrome">
+    <div class="header-actions">
+      <nav class="nav" aria-label="Primary navigation">
+        <a class="active" href="#about">About</a><a href="#explore">Explore</a><a href="#planets">Planets</a>
+      </nav>
+      <button class="menu" type="button" aria-expanded="false" aria-controls="menu-overlay">Menu</button>
+    </div>
+  </header>
+
+  <aside class="planet-list chrome" aria-label="Planets"></aside>
+
+  <canvas id="portal-canvas" class="portal-canvas" aria-hidden="true"></canvas>
+  <section class="portal-wrap chrome" aria-label="Next destination">
+    <div class="portal-heading">
+      <span>Next:</span>
+      <span><span id="next-number">[03]</span> <strong id="next-name">Earth</strong></span>
+    </div>
+    <button class="portal" id="portal" type="button" aria-label="Travel to Earth">
+      <video id="portal-video" src="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/fc3ded42-e845-41f3-a830-5cab512d79cd.mp4" muted playsinline preload="auto"></video>
+      <img id="portal-image" src="https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/d6fb8b6b-c15e-4aaa-9cf7-45bbb5e33372.jpg" alt="Mercury">
+    </button>
+  </section>
+
+  <section class="planet-content chrome" aria-live="polite">
+    <h1 id="planet-title">MARS</h1>
+    <dl id="facts"></dl>
+  </section>
+
+  <div class="scroll-cue chrome" aria-hidden="true"><span>Scroll</span><i></i></div>
+
+  <div class="transition-layer" aria-hidden="true"><video id="transition-video" muted playsinline preload="auto"></video></div>
+  <div class="loading" aria-hidden="true">Preparing orbit…</div>
+  <div class="custom-cursor" aria-hidden="true">
+    <span class="cursor-orbit"></span><span class="cursor-dot"></span><span class="cursor-label">Enter</span>
+  </div>
+</main>
+
+<!-- ABOUT ─────────────────────────────────────────────────────── -->
+<section class="section about" id="about">
+  <div class="about-orbits" aria-hidden="true"><span></span><span></span><span></span><span></span><b></b></div>
+  <div class="about-inner">
+    <p class="eyebrow reveal">About the voyage</p>
+    <h2 class="scrub" data-scrub>Planet Jumping is a guided tour of the inner <em>Solar System.</em> Each jump drops you into orbit around the next world, with the <em>numbers</em> that make it what it is.</h2>
+  </div>
+  <div class="stats">
+    <div class="stat reveal" style="--d:.0s"><span class="stat-num" data-count="8" data-dec="0">0</span><span class="stat-label">planets on the chart, from Mercury out to Neptune</span></div>
+    <div class="stat reveal" style="--d:.1s"><span class="stat-num"><span data-count="4.6" data-dec="1">0</span><small>bn</small></span><span class="stat-label">years since the planets formed around a young Sun</span></div>
+    <div class="stat reveal" style="--d:.2s"><span class="stat-num"><span data-count="30.07" data-dec="2">0</span><small>AU</small></span><span class="stat-label">mean distance from the Sun to Neptune, the outermost planet</span></div>
+    <div class="stat reveal" style="--d:.3s"><span class="stat-num"><span data-count="8.3" data-dec="1">0</span><small>min</small></span><span class="stat-label">for sunlight to cross the 149.6 million km to Earth</span></div>
+  </div>
+</section>
+
+<!-- EXPLORE ───────────────────────────────────────────────────── -->
+<section class="explore" id="explore" aria-label="Explore the route">
+  <div class="explore-sticky">
+    <div class="explore-head">
+      <div>
+        <p class="eyebrow">Explore</p>
+        <h2 class="display">Four worlds, sunward</h2>
+      </div>
+      <div class="explore-meter" aria-hidden="true"><span id="explore-count">01 / 04</span><i><b></b></i></div>
+    </div>
+    <div class="explore-track" id="explore-track">
+      <article class="route" data-key="mars">
+        <span class="route-ghost" aria-hidden="true">Mars</span>
+        <div class="route-visual"><span class="route-order" aria-hidden="true">04</span><canvas class="route-planet" data-kind="mars" aria-hidden="true"></canvas></div>
+        <div class="route-body">
+          <span class="chip">You are here</span>
+          <h3>Mars</h3>
+          <p>Rust-coloured dust over dark basalt, polar caps of water and carbon-dioxide ice, and Olympus Mons, the tallest volcano known.</p>
+          <dl class="route-stats">
+            <div><dt>Sunlight takes</dt><dd>12.7 min</dd></div>
+            <div><dt>Surface gravity</dt><dd>3.71 m/s²</dd></div>
+            <div><dt>One day</dt><dd>24 h 37 min</dd></div>
+            <div><dt>Moons</dt><dd>2</dd></div>
+          </dl>
+          <button class="pill-btn route-go" type="button" data-cursor="Go">Back to the portal <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h11M9 4l4 4-4 4"/></svg></button>
+        </div>
+      </article>
+      <article class="route" data-key="earth">
+        <span class="route-ghost" aria-hidden="true">Earth</span>
+        <div class="route-visual"><span class="route-order" aria-hidden="true">03</span><canvas class="route-planet" data-kind="earth" aria-hidden="true"></canvas></div>
+        <div class="route-body">
+          <span class="chip">Next jump</span>
+          <h3>Earth</h3>
+          <p>The only world with liquid water on its surface, a nitrogen and oxygen sky, and one large moon that steadies its tilt.</p>
+          <dl class="route-stats">
+            <div><dt>Sunlight takes</dt><dd>8.3 min</dd></div>
+            <div><dt>Surface gravity</dt><dd>9.81 m/s²</dd></div>
+            <div><dt>One day</dt><dd>23 h 56 min</dd></div>
+            <div><dt>Moons</dt><dd>1</dd></div>
+          </dl>
+          <button class="pill-btn route-go" type="button" data-cursor="Go">Back to the portal <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h11M9 4l4 4-4 4"/></svg></button>
+        </div>
+      </article>
+      <article class="route" data-key="venus">
+        <span class="route-ghost" aria-hidden="true">Venus</span>
+        <div class="route-visual"><span class="route-order" aria-hidden="true">02</span><canvas class="route-planet" data-kind="venus" aria-hidden="true"></canvas></div>
+        <div class="route-body">
+          <span class="chip">2 jumps away</span>
+          <h3>Venus</h3>
+          <p>Almost Earth's size, but buried under a crushing carbon-dioxide atmosphere that holds the surface near 465 °C.</p>
+          <dl class="route-stats">
+            <div><dt>Sunlight takes</dt><dd>6.0 min</dd></div>
+            <div><dt>Surface gravity</dt><dd>8.87 m/s²</dd></div>
+            <div><dt>One day</dt><dd>243 Earth days</dd></div>
+            <div><dt>Moons</dt><dd>0</dd></div>
+          </dl>
+          <button class="pill-btn route-go" type="button" data-cursor="Go">Back to the portal <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h11M9 4l4 4-4 4"/></svg></button>
+        </div>
+      </article>
+      <article class="route" data-key="mercury">
+        <span class="route-ghost" aria-hidden="true">Mercury</span>
+        <div class="route-visual"><span class="route-order" aria-hidden="true">01</span><canvas class="route-planet" data-kind="mercury" aria-hidden="true"></canvas></div>
+        <div class="route-body">
+          <span class="chip">Final view</span>
+          <h3>Mercury</h3>
+          <p>The smallest planet and the closest to the Sun, cratered like the Moon, with almost no atmosphere to hold its heat.</p>
+          <dl class="route-stats">
+            <div><dt>Sunlight takes</dt><dd>3.2 min</dd></div>
+            <div><dt>Surface gravity</dt><dd>3.70 m/s²</dd></div>
+            <div><dt>One day</dt><dd>58.6 Earth days</dd></div>
+            <div><dt>Moons</dt><dd>0</dd></div>
+          </dl>
+          <button class="pill-btn route-go" type="button" data-cursor="Go">Back to the portal <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h11M9 4l4 4-4 4"/></svg></button>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- PLANETS ───────────────────────────────────────────────────── -->
+<section class="section planets" id="planets">
+  <div class="planets-head">
+    <div>
+      <p class="eyebrow reveal">Planets</p>
+      <h2 class="display reveal" style="--d:.08s">All eight, in motion</h2>
+    </div>
+    <p class="reveal" style="--d:.16s">Distances are compressed so every orbit fits on screen. The speeds are true to scale: one second here is 30 days out there, so Mercury laps the Sun in three seconds and Neptune takes over half an hour.</p>
+  </div>
+  <div class="planets-grid">
+    <div class="orbit-wrap reveal">
+      <canvas id="orbit-canvas" aria-label="Animated orbit map of the eight planets" role="img"></canvas>
+      <div class="orbit-tip" id="orbit-tip"></div>
+    </div>
+    <div class="reveal" style="--d:.12s">
+      <ol class="orbit-list" id="orbit-list"></ol>
+      <p class="orbit-note">AU is the astronomical unit, the mean Earth–Sun distance of 149.6 million km. Year is one orbit, in Earth days.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FINALE ────────────────────────────────────────────────────── -->
+<section class="finale" aria-label="Back to the portal">
+  <div class="marquee" aria-hidden="true"><div class="marquee-track" id="marquee-track"></div></div>
+  <div class="finale-inner">
+    <h2 class="display reveal">The next jump is waiting</h2>
+    <div class="reveal" style="--d:.1s">
+      <p id="finale-copy">You are orbiting Mars. Earth is one click away through the portal.</p>
+      <button class="pill-btn is-primary" type="button" id="finale-go" data-cursor="Go">Back to the portal <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h11M9 4l4 4-4 4"/></svg></button>
+    </div>
+  </div>
+  <footer class="footer">
+    <span><b>Planet Jumping</b> by Ubernatural</span>
+    <span>Figures from NASA planetary fact sheets</span>
+    <span>© 2026</span>
+  </footer>
+</section>
+
+<div class="menu-overlay" id="menu-overlay" aria-hidden="true">
+  <ul class="menu-links">
+    <li><a href="#top" style="--i:0" data-cursor="Go">Portal <small>00</small></a></li>
+    <li><a href="#about" style="--i:1" data-cursor="Go">About <small>01</small></a></li>
+    <li><a href="#explore" style="--i:2" data-cursor="Go">Explore <small>02</small></a></li>
+    <li><a href="#planets" style="--i:3" data-cursor="Go">Planets <small>03</small></a></li>
+  </ul>
+  <div class="menu-foot"><span>Currently orbiting <b id="menu-planet">Mars</b></span><span>Route: Mars → Earth → Venus → Mercury</span></div>
+</div>
+
+<div class="progress" id="progress" aria-hidden="true"></div>
+<div class="grain" id="grain" aria-hidden="true"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ══════════════════════════════════════════════════════════════
+   ASSETS + DATA
+   ══════════════════════════════════════════════════════════════ */
+const BASE = 'https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P';
+const TO_EARTH = BASE + '/fc3ded42-e845-41f3-a830-5cab512d79cd.mp4';
+const TO_VENUS = BASE + '/b30f64d9-1637-477a-83df-d0fc6461a422.mp4';
+const MERCURY  = BASE + '/d6fb8b6b-c15e-4aaa-9cf7-45bbb5e33372.jpg';
+
+const planets = ['Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune'];
+const states = {
+  mars: { name:'Mars', next:'Earth', number:'[03]', portal:TO_EARTH, background:'mars-background',
+    facts:[['Distance:','About 228 million km (1.5 astronomical units).'],
+           ['Year:','One Martian year is equal to 687 Earth days.'],
+           ['Temperature:','Around -60 °C, dropping to -125 °C at the poles in winter.'],
+           ['Atmosphere:','Very thin, consisting of 95% carbon dioxide, with frequent dust storms.']] },
+  earth: { name:'Earth', next:'Venus', number:'[02]', portal:TO_VENUS, background:'earth-background',
+    facts:[['Distance:','149.6 million km from the Sun.'],
+           ['Year:','365.25 Earth days.'],
+           ['Temperature:','Average surface temperature around 15 °C.'],
+           ['Atmosphere:','Mostly nitrogen and oxygen, supporting life and liquid water.']] },
+  venus: { name:'Venus', next:'Mercury', number:'[06]', image:MERCURY, background:'venus-background',
+    facts:[['Distance:','108.2 million km from the Sun.'],
+           ['Year:','225 Earth days.'],
+           ['Temperature:','Around 465 °C — the hottest planet in the Solar System.'],
+           ['Atmosphere:','Extremely dense, mostly carbon dioxide, with clouds of sulfuric acid.']] }
+};
+const ROUTE = ['mars','earth','venus'];
+
+/* ══════════════════════════════════════════════════════════════
+   ELEMENTS + STATE
+   ══════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const site = $('site');
+const experience = document.querySelector('.experience');
+const portalCanvas = $('portal-canvas'), ctx = portalCanvas.getContext('2d');
+const sceneCanvas = $('scene-canvas'), sctx = sceneCanvas.getContext('2d');
+const preCanvas = $('preloader-canvas'), pctx = preCanvas.getContext('2d');
+const portal = $('portal'), portalVideo = $('portal-video'), portalImage = $('portal-image');
+const transitionVideo = $('transition-video');
+const preloader = $('preloader');
+const planetList = document.querySelector('.planet-list');
+const header = document.querySelector('.header');
+const cursor = document.querySelector('.custom-cursor');
+const cursorLabel = cursor.querySelector('.cursor-label');
+const cursorDot = cursor.querySelector('.cursor-dot');
+const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+let current = 'mars', busy = false, rendered = false;
+let rotX = 0, rotY = 0, targetX = 0, targetY = 0;
+let expansion = 0, maskScale = 0, canvasOpacity = 1, transitionActive = false;
+let frozen = null;            // null | 'canvas' (real frame in #scene-canvas) | {live:kind} (procedural)
+let transitionProc = null;    // procedural stand-in for the transition clip
+let preProc = false, preT = 0; // procedural preloader
+let warp = 0, warpPhase = 0;
+let ptrX = 0, ptrY = 0, parX = 0, parY = 0;  // pointer, -0.5..0.5, eased copy for parallax
+let portalHover = false, hoverAmt = 0, introAmt = 0;
+
+document.documentElement.classList.add('js-reveal');
+
+/* ══════════════════════════════════════════════════════════════
+   HELPERS
+   ══════════════════════════════════════════════════════════════ */
+const ease = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const mix = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const nextFrame = () => new Promise(r => requestAnimationFrame(r));
+const once = (el, ev) => new Promise(r => el.addEventListener(ev, r, { once:true }));
+
+function animateValue(setter, duration, fn = ease){
+  return new Promise(resolve => {
+    const start = performance.now();
+    const step = now => {
+      const t = clamp((now - start) / duration);
+      setter(fn(t));
+      if (t < 1) requestAnimationFrame(step); else resolve();
+    };
+    requestAnimationFrame(step);
+  });
+}
+function retrigger(el, cls){ el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function isReady(el){
+  if (!el) return false;
+  if (el instanceof HTMLVideoElement) return el.readyState >= 2 && el.videoWidth > 0 && !el.error;
+  return el.complete && el.naturalWidth > 0;
+}
+function mediaReady(el, ms){
+  if (isReady(el)) return Promise.resolve();
+  const evs = el instanceof HTMLVideoElement ? ['loadeddata','error'] : ['load','error'];
+  return Promise.race([...evs.map(e => once(el, e)), wait(ms)]);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROCEDURAL SPACE
+   Draws the planets and starfield itself, so the experience still
+   works when the clips cannot be reached (blocked host, offline).
+   ══════════════════════════════════════════════════════════════ */
+function hash(x, y, z, s){
+  let n = Math.imul(x, 0x27d4eb2d) ^ Math.imul(y, 0x165667b1) ^ Math.imul(z, 0x9e3779b1) ^ Math.imul(s, 0x85ebca6b);
+  n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d);
+  n = Math.imul(n ^ (n >>> 12), 0x297a2d39);
+  n ^= n >>> 15;
+  return (n >>> 0) / 4294967296;
+}
+function vnoise(x, y, z, s){
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf), w = zf*zf*(3-2*zf);
+  const a = hash(xi,yi,zi,s), b = hash(xi+1,yi,zi,s), c = hash(xi,yi+1,zi,s), d = hash(xi+1,yi+1,zi,s);
+  const e = hash(xi,yi,zi+1,s), f = hash(xi+1,yi,zi+1,s), g = hash(xi,yi+1,zi+1,s), k = hash(xi+1,yi+1,zi+1,s);
+  const x1 = a + (b-a)*u, x2 = c + (d-c)*u, x3 = e + (f-e)*u, x4 = g + (k-g)*u;
+  const y1 = x1 + (x2-x1)*v, y2 = x3 + (x4-x3)*v;
+  return y1 + (y2-y1)*w;
+}
+function fbm(x, y, z, s, oct){
+  let amp = .5, f = 1, sum = 0, norm = 0;
+  for (let i = 0; i < oct; i++){
+    sum += amp * vnoise(x*f + i*17.3, y*f - i*9.1, z*f + i*5.7, s + i);
+    norm += amp; amp *= .5; f *= 2.03;
+  }
+  return sum / norm;
+}
+
+const KIND = {
+  mars:    { atm:[236,140,96],  atmA:.38, glow:[120,40,20],  neb:[[150,52,28],[70,30,60]] },
+  earth:   { atm:[110,180,255], atmA:.55, glow:[20,60,130],  neb:[[20,70,140],[20,100,110]] },
+  venus:   { atm:[255,214,150], atmA:.5,  glow:[140,90,30],  neb:[[160,110,40],[110,50,30]] },
+  mercury: { atm:[200,200,210], atmA:.08, glow:[90,90,100],  neb:[[70,80,110],[120,90,60]] }
+};
+const TEX = {};        // kind -> unlit texture canvas
+let SHADE = null;      // shared terminator overlay
+const TEX_SIZE = 560;
+const out = [0,0,0];
+let craters = null;
+
+function paintPixel(kind, x, y, z){
+  if (kind === 'mars'){
+    const n = fbm(x*2.2+3, y*2.2, z*2.2, 1, 5), m = fbm(x*6, y*6, z*6+7, 2, 4), dk = fbm(x*3.4, y*3.4+4, z*3.4, 3, 4);
+    const t = smooth(.36, .64, n);
+    let r = mix(214, 126, t), g = mix(112, 50, t), b = mix(66, 28, t);
+    const dust = smooth(.55, .78, m) * .6; r += 28*dust; g += 22*dust; b += 14*dust;
+    const dark = smooth(.58, .78, dk) * .38; r *= 1-dark; g *= 1-dark; b *= 1-dark;
+    const cap = smooth(.93, .97, Math.abs(y) + (m-.5)*.1) * .9;
+    out[0] = mix(r, 240, cap); out[1] = mix(g, 232, cap); out[2] = mix(b, 224, cap);
+  } else if (kind === 'earth'){
+    const n = fbm(x*1.7, y*1.7, z*1.7, 11, 6), v = fbm(x*5, y*5, z*5, 12, 4);
+    const land = smooth(.51, .535, n);
+    const oc = smooth(.25, .5, n);
+    let r = mix(8, 22, oc), g = mix(34, 80, oc), b = mix(80, 142, oc);
+    const dry = smooth(.4, .66, v) * (1 - Math.abs(y)*.6);
+    r = mix(r, mix(56, 158, dry), land); g = mix(g, mix(92, 132, dry), land); b = mix(b, mix(46, 86, dry), land);
+    const ice = smooth(.8, .88, Math.abs(y) + (v-.5)*.16);
+    r = mix(r, 236, ice); g = mix(g, 242, ice); b = mix(b, 248, ice);
+    const cl = fbm(x*3.2, y*5.2, z*3.2, 13, 5);
+    const cloud = smooth(.5, .7, cl) * .92;
+    out[0] = mix(r, 250, cloud); out[1] = mix(g, 252, cloud); out[2] = mix(b, 255, cloud);
+  } else if (kind === 'venus'){
+    const w = fbm(x*1.6, y*1.6, z*1.6, 21, 3);
+    const bnd = fbm(x*1.1 + w*1.4, y*7 + w*2.4, z*1.1, 22, 4);
+    const t = smooth(.28, .72, bnd);
+    let r = mix(240, 188, t), g = mix(218, 140, t), b = mix(168, 80, t);
+    const hi = smooth(.58, .8, fbm(x*4, y*4, z*4, 23, 3)) * .45;
+    out[0] = mix(r, 252, hi); out[1] = mix(g, 238, hi); out[2] = mix(b, 204, hi);
+  } else {
+    const n = fbm(x*3, y*3, z*3, 31, 5), m = fbm(x*9, y*9, z*9, 32, 3);
+    const t = smooth(.3, .7, n);
+    let s = mix(92, 178, t) * (.9 + m*.2);
+    for (let i = 0; i < craters.length; i++){
+      const c = craters[i], d = x*c[0] + y*c[1] + z*c[2];
+      if (d < c[5]) continue;
+      if (d > c[3]) s *= .8; else if (d > c[4]) s *= 1.2; else s *= 1.06;
+    }
+    out[0] = s; out[1] = s*.97; out[2] = s*.93;
+  }
+}
+function makeCraters(){
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const list = [];
+  for (let i = 0; i < 90; i++){
+    const u = rnd()*2-1, th = rnd()*Math.PI*2, s = Math.sqrt(1-u*u);
+    const r = .02 + Math.pow(rnd(), 3) * .16;
+    list.push([s*Math.cos(th), s*Math.sin(th), u, Math.cos(r*.82), Math.cos(r), Math.cos(r*1.35)]);
+  }
+  return list;
+}
+function makeShade(size){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'), img = g.createImageData(size, size), d = img.data, R = size/2;
+  const L = [-.55, -.42, .72], ln = Math.hypot(...L); L[0]/=ln; L[1]/=ln; L[2]/=ln;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++){
+    const nx = (x+.5-R)/R, ny = (y+.5-R)/R, d2 = nx*nx + ny*ny;
+    if (d2 > 1) continue;
+    const nz = Math.sqrt(1-d2), lam = nx*L[0] + ny*L[1] + nz*L[2];
+    const light = smooth(-.18, .6, lam);
+    const a = clamp((1 - light) * .97 + (1 - nz) * .18 * light);
+    const i = (y*size + x) * 4;
+    d[i] = d[i+1] = d[i+2] = 0; d[i+3] = a * 255 * clamp((1 - Math.sqrt(d2)) * R * 1.5);
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+function makeTexture(kind, size){
+  return new Promise(resolve => {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    const g = c.getContext('2d'), img = g.createImageData(size, size), d = img.data, R = size/2;
+    let y = 0;
+    const chunk = () => {
+      const end = Math.min(size, y + 20);
+      for (; y < end; y++) for (let x = 0; x < size; x++){
+        const nx = (x+.5-R)/R, ny = (y+.5-R)/R, d2 = nx*nx + ny*ny;
+        if (d2 > 1) continue;
+        paintPixel(kind, nx, ny, Math.sqrt(1-d2));
+        const i = (y*size + x) * 4;
+        d[i] = out[0]; d[i+1] = out[1]; d[i+2] = out[2];
+        d[i+3] = 255 * clamp((1 - Math.sqrt(d2)) * R * 1.5);
+      }
+      if (y < size) setTimeout(chunk, 0);
+      else { g.putImageData(img, 0, 0); resolve(c); }
+    };
+    chunk();
+  });
+}
+async function buildTextures(){
+  craters = makeCraters();
+  SHADE = makeShade(TEX_SIZE);
+  for (const k of ['mars','earth','venus','mercury']){ TEX[k] = await makeTexture(k, TEX_SIZE); }
+}
+
+/* nebula plates */
+const NEB = {};
+function nebula(kind){
+  if (NEB[kind]) return NEB[kind];
+  const c = document.createElement('canvas'); c.width = 320; c.height = 200;
+  const g = c.getContext('2d'); g.fillStyle = '#020203'; g.fillRect(0,0,320,200);
+  const [a, b] = KIND[kind].neb;
+  const blob = (x, y, r, col, al) => {
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, `rgba(${col},${al})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = gr; g.fillRect(0,0,320,200);
+  };
+  blob(250, 40, 170, a.join(','), .34); blob(60, 160, 150, b.join(','), .3); blob(170, 110, 90, a.join(','), .12);
+  blob(0, 0, 120, '255,236,200', .1);
+  return (NEB[kind] = c);
+}
+
+/* starfield (shared phase so every view of it is screen-locked) */
+const STARS = [];
+(() => { let s = 99; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 420; i++) STARS.push([r()*2-1, r()*2-1, r(), .35 + r()*.65]); })();
+
+function drawStars(c, W, H){
+  const cx = W/2 - parX*14, cy = H/2 - parY*10, K = Math.max(W, H) * .16;
+  const streak = .006 + warp * .12;
+  c.lineCap = 'round';
+  for (const s of STARS){
+    let z = ((s[2] - warpPhase) % 1 + 1) % 1; z = .03 + z * .97;
+    const z2 = Math.min(1, z + streak);
+    const x1 = cx + s[0]/z*K, y1 = cy + s[1]/z*K;
+    if (x1 < -20 || x1 > W+20 || y1 < -20 || y1 > H+20) continue;
+    const x2 = cx + s[0]/z2*K, y2 = cy + s[1]/z2*K;
+    const a = Math.pow(1 - z, 1.3) * s[3];
+    c.strokeStyle = `rgba(255,255,255,${a.toFixed(3)})`;
+    c.lineWidth = (1 - z) * 1.7 + .35;
+    c.beginPath(); c.moveTo(x2, y2); c.lineTo(x1 + .01, y1); c.stroke();
+  }
+}
+function coverRect(mw, mh, W, H){
+  const s = Math.max(W/mw, H/mh), w = mw*s, h = mh*s;
+  return [(W-w)/2, (H-h)/2, w, h];
+}
+function drawPlanet(c, kind, x, y, r, rot){
+  const k = KIND[kind];
+  // outer glow
+  const gl = c.createRadialGradient(x, y, r*.9, x, y, r*1.5);
+  gl.addColorStop(0, `rgba(${k.glow},.35)`); gl.addColorStop(1, `rgba(${k.glow},0)`);
+  c.fillStyle = gl; c.beginPath(); c.arc(x, y, r*1.5, 0, Math.PI*2); c.fill();
+  if (TEX[kind]){
+    c.save();
+    c.beginPath(); c.arc(x, y, r, 0, Math.PI*2); c.clip();
+    c.save(); c.translate(x, y); c.rotate(rot); c.drawImage(TEX[kind], -r*1.012, -r*1.012, r*2.024, r*2.024); c.restore();
+    c.drawImage(SHADE, x - r*1.012, y - r*1.012, r*2.024, r*2.024);
+    c.restore();
+  } else {
+    const g = c.createRadialGradient(x - r*.4, y - r*.4, r*.1, x, y, r);
+    g.addColorStop(0, `rgb(${k.atm})`); g.addColorStop(.7, `rgb(${k.glow})`); g.addColorStop(1, '#050505');
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, r, 0, Math.PI*2); c.fill();
+  }
+  // atmosphere rim, strongest on the lit limb
+  const ax = x - r*.05, ay = y - r*.04;
+  const at = c.createRadialGradient(ax, ay, r*.93, ax, ay, r*1.1);
+  at.addColorStop(0, `rgba(${k.atm},0)`); at.addColorStop(.45, `rgba(${k.atm},${k.atmA})`); at.addColorStop(1, `rgba(${k.atm},0)`);
+  c.fillStyle = at; c.beginPath(); c.arc(ax, ay, r*1.1, 0, Math.PI*2); c.fill();
+}
+/* t: 0 = distant planet mid-frame, 1 = arrived, limb filling the lower half */
+function drawApproach(c, W, H, kind, t, now){
+  c.fillStyle = '#020203'; c.fillRect(0, 0, W, H);
+  const [nx, ny, nw, nh] = coverRect(320, 200, W, H);
+  c.drawImage(nebula(kind), nx - parX*8, ny - parY*6, nw, nh);
+  drawStars(c, W, H);
+  // sun glare from the light direction
+  const sg = c.createRadialGradient(0, 0, 0, 0, 0, Math.max(W, H) * .6);
+  sg.addColorStop(0, kind === 'mercury' || kind === 'venus' ? 'rgba(255,236,200,.22)' : 'rgba(255,236,200,.1)');
+  sg.addColorStop(1, 'rgba(255,236,200,0)');
+  c.fillStyle = sg; c.fillRect(0, 0, W, H);
+  const e = clamp(t);
+  const m = Math.min(W, H), M = Math.max(W, H);
+  const r0 = m * .085, r1 = M * 1.08;
+  const r = r0 * Math.pow(r1 / r0, e);
+  const top = mix(H/2 - r, H * .47, e * e);
+  const x = W/2 - parX * mix(22, 40, e), y = top + r - parY * mix(14, 26, e);
+  drawPlanet(c, kind, x, y, r, now * .000012 + (kind.length * .7));
+  const v = c.createRadialGradient(W/2, H/2, m*.35, W/2, H/2, M*.8);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.55)');
+  c.fillStyle = v; c.fillRect(0, 0, W, H);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════════ */
+function render(){
+  const s = states[current];
+  experience.dataset.planet = current;
+  document.body.dataset.planet = current;
+  $('planet-title').textContent = s.name.toUpperCase();
+  $('next-name').textContent = s.next;
+  $('next-number').textContent = s.number;
+  portal.setAttribute('aria-label', `Travel to ${s.next}`);
+  $('facts').innerHTML = s.facts.map(([k, v]) => `<div class="fact"><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+  planetList.innerHTML = planets.map(p => `<span class="planet-item${p === s.name ? ' active' : ''}">${p}</span>`).join('');
+  if (rendered) retrigger(planetList, 'is-switching');
+  document.querySelectorAll('.background').forEach(v => v.classList.toggle('is-visible', v.id === s.background));
+  if (s.image){
+    portalImage.style.display = ''; portalVideo.style.display = 'none';
+  } else {
+    portalImage.style.display = 'none'; portalVideo.style.display = '';
+    if (portalVideo.getAttribute('src') !== s.portal){ portalVideo.src = s.portal; portalVideo.load(); }
+  }
+  updatePageState();
+  fitTitle();
+  rendered = true;
+}
+/* keep the title clear of the facts when the condensed face is missing */
+function fitTitle(){
+  const h1 = $('planet-title'), box = h1.parentElement, dl = $('facts');
+  h1.style.fontSize = '';
+  const block = getComputedStyle(box).display === 'block';
+  const room = (block ? box.clientWidth : box.clientWidth - dl.offsetWidth - 40) + 20;
+  const need = h1.scrollWidth;
+  if (need > room){
+    const fs = parseFloat(getComputedStyle(h1).fontSize);
+    h1.style.fontSize = Math.floor(fs * room / need) + 'px';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CANVAS
+   ══════════════════════════════════════════════════════════════ */
+function resizeCanvas(){
+  const d = Math.min(devicePixelRatio || 1, 2), W = innerWidth, H = innerHeight;
+  const size = (cv, c) => {
+    cv.width = Math.round(W * d); cv.height = Math.round(H * d);
+    cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    c.setTransform(d, 0, 0, d, 0, 0);
+  };
+  size(portalCanvas, ctx);
+  if (frozen !== 'canvas') size(sceneCanvas, sctx);
+  size(preCanvas, pctx);
+  document.documentElement.style.setProperty('--vh', (H / 100) + 'px');
+}
+function drawCover(c, media){
+  const mw = media.videoWidth || media.naturalWidth || media.width, mh = media.videoHeight || media.naturalHeight || media.height;
+  if (!mw || !mh) return;
+  const [x, y, w, h] = coverRect(mw, mh, innerWidth, innerHeight);
+  try { c.drawImage(media, x, y, w, h); } catch (e) {}
+}
+function drawShade(c){
+  const H = innerHeight, g = c.createLinearGradient(0, H*.52, 0, H);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.88)');
+  c.fillStyle = g; c.fillRect(0, H*.52, innerWidth, H*.48);
+}
+function drawSource(c, src, now){
+  if (src.proc) drawApproach(c, innerWidth, innerHeight, src.proc, src.t, now);
+  else drawCover(c, src);
+}
+function portalSource(){
+  if (transitionActive) return transitionProc ? { proc:transitionProc.kind, t:transitionProc.t } : transitionVideo;
+  const s = states[current], el = s.image ? portalImage : portalVideo;
+  return isReady(el) ? el : { proc:s.next.toLowerCase(), t:.2 };
+}
+
+function roundedPoints(w, h, r){
+  r = Math.min(r, w/2, h/2);
+  const P = Math.PI, pts = [];
+  const arcs = [[w/2-r, -h/2+r, -P/2, 0], [w/2-r, h/2-r, 0, P/2], [-w/2+r, h/2-r, P/2, P], [-w/2+r, -h/2+r, P, P*1.5]];
+  for (const [ax, ay, a0, a1] of arcs)
+    for (let i = 0; i <= 10; i++){ const a = a0 + (a1 - a0) * i / 10; pts.push([ax + Math.cos(a)*r, ay + Math.sin(a)*r]); }
+  return pts;
+}
+function projectPath(c, pts, rx, ry, cx, cy){
+  const ax = rx * Math.PI / 180, ay = ry * Math.PI / 180;
+  const cX = Math.cos(ax), sX = Math.sin(ax), cY = Math.cos(ay), sY = Math.sin(ay);
+  c.beginPath();
+  pts.forEach(([x, y], i) => {
+    const xx = x * cY, yy = y * cX, z = x * sY - y * sX, p = 850 / (850 + z);
+    const X = cx + xx * p, Y = cy + yy * p;
+    i ? c.lineTo(X, Y) : c.moveTo(X, Y);
+  });
+  c.closePath();
+}
+
+const DUST = Array.from({ length: 70 }, (_, i) => [hash(i,1,0,5), hash(i,2,0,5), .3 + hash(i,3,0,5) * .7, hash(i,4,0,5)]);
+
+let lastNow = performance.now();
+function draw(now){
+  const dt = Math.min(40, now - lastNow); lastNow = now;
+  rotX += (targetX - rotX) * Math.min(1, dt * .009);
+  rotY += (targetY - rotY) * Math.min(1, dt * .009);
+  hoverAmt += ((portalHover && !busy && current !== 'venus' ? 1 : 0) - hoverAmt) * Math.min(1, dt * .008);
+  parX += (ptrX - parX) * Math.min(1, dt * .003);
+  parY += (ptrY - parY) * Math.min(1, dt * .003);
+  introAmt += ((document.body.classList.contains('intro-ready') ? 1 : 0) - introAmt) * Math.min(1, dt * .002);
+  warpPhase += dt * .001 * (.012 + warp * .9);
+
+  const scroll = updateScroll(dt);
+  drawHero(now, scroll);
+  drawSections(now, dt);
+  requestAnimationFrame(draw);
+}
+
+function drawHero(now, st){
+  const W = innerWidth, H = innerHeight;
+  ctx.clearRect(0, 0, W, H);
+  const hr = experience.getBoundingClientRect();
+  if (hr.bottom <= 0) return;
+  const bgScale = 1.06 + clamp(st / hr.height) * .12;
+  const bgX = -parX * 14, bgY = st * .35 - parY * 10;
+
+  if (preProc && !frozen){
+    pctx.clearRect(0, 0, W, H);
+    drawApproach(pctx, W, H, 'mars', preT, now);
+  }
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(hr.left, hr.top, hr.width, hr.height); ctx.clip();
+
+  if (frozen){
+    ctx.save();
+    ctx.translate(W/2 + bgX, H/2 + hr.top + bgY); ctx.scale(bgScale, bgScale); ctx.translate(-W/2, -H/2);
+    if (frozen === 'canvas') ctx.drawImage(sceneCanvas, 0, 0, W, H);
+    else drawApproach(ctx, W, H, frozen.live, 1, now);
+    ctx.restore();
+    ctx.save(); ctx.translate(0, hr.top); drawShade(ctx); ctx.restore();
+  }
+
+  const rect = portal.getBoundingClientRect(), e = expansion;
+  const rcx = rect.left + rect.width / 2, rcy = rect.top + rect.height / 2;
+  const cx = rcx + (W/2 - rcx) * e, cy = rcy + (H/2 - rcy) * e;
+  const baseW = rect.width + (W - rect.width) * e, baseH = rect.height + (H - rect.height) * e;
+  const scale = e ? 1 : maskScale, w = baseW * scale, h = baseH * scale;
+  const radius = (W <= 640 ? 70 : 90) * (1 - e) * scale;
+  const rx = rotX * (1 - e), ry = rotY * (1 - e);
+  if (w > 1 && h > 1){
+    const pts = roundedPoints(w, h, radius);
+    ctx.save();
+    ctx.globalAlpha = canvasOpacity;
+    projectPath(ctx, pts, rx, ry, cx, cy);
+    ctx.clip();
+    ctx.fillStyle = '#030303'; ctx.fillRect(0, 0, W, H);
+    drawSource(ctx, portalSource(), now);
+    if (transitionActive) drawShade(ctx);
+    ctx.restore();
+    // rim light that brightens on hover
+    const rim = (.16 + .5 * hoverAmt) * (1 - e) * Math.min(1, scale * 1.4);
+    if (rim > .01){
+      projectPath(ctx, pts, rx, ry, cx, cy);
+      ctx.strokeStyle = `rgba(255,255,255,${rim.toFixed(3)})`;
+      ctx.lineWidth = 1 + hoverAmt;
+      ctx.shadowColor = 'rgba(255,255,255,.6)'; ctx.shadowBlur = 18 * hoverAmt;
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+  }
+
+  // drifting dust in front of the scene, parallaxed by depth
+  if (introAmt > .01 && !reduceMotion){
+    for (const d of DUST){
+      const x = ((d[0] * W + now * .006 * d[2] - parX * 60 * d[2]) % W + W) % W;
+      const y = ((d[1] * H - now * .004 * d[2] - parY * 40 * d[2] + hr.top * d[2] * .4) % H + H) % H;
+      ctx.globalAlpha = introAmt * (.12 + .35 * d[2]) * (.6 + .4 * Math.sin(now * .002 + d[3] * 9));
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y, .5 + d[2] * 1.3, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+
+  preloader.style.transform = document.body.classList.contains('preload-complete')
+    ? `translate3d(${bgX.toFixed(2)}px,${bgY.toFixed(2)}px,0) scale(${bgScale.toFixed(4)})` : '';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MASK + CONTENT REVEALS
+   ══════════════════════════════════════════════════════════════ */
+function revealMask(){
+  retrigger(experience, 'mask-revealing');
+  maskScale = 0;
+  return animateValue(v => maskScale = v, 1050);
+}
+function revealPlanetContent(){ retrigger(experience, 'content-revealing'); }
+
+async function startExperience(){
+  const s = states[current];
+  await mediaReady(s.image ? portalImage : portalVideo, 2500);
+  await revealMask();
+  document.body.classList.add('intro-ready');
+  setTimeout(revealPlanetContent, 850);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRAVEL
+   ══════════════════════════════════════════════════════════════ */
+function scrollToY(y){
+  site.scrollTo({ top:y, behavior:reduceMotion ? 'auto' : 'smooth' });
+  return new Promise(resolve => {
+    const start = performance.now();
+    const check = () => {
+      if (Math.abs(site.scrollTop - y) < 3 || performance.now() - start > 1400) resolve();
+      else requestAnimationFrame(check);
+    };
+    check();
+  });
+}
+
+async function travel(){
+  if (busy || current === 'venus') return;
+  busy = true; targetX = 0; targetY = 0;
+  document.body.classList.add('is-busy');
+  const next = current === 'mars' ? 'earth' : 'venus';
+  try {
+    if (site.scrollTop > 2) await scrollToY(0);
+    transitionVideo.src = states[current].portal;
+    transitionVideo.load();
+    experience.classList.add('is-loading');
+    await Promise.race([once(transitionVideo, 'canplaythrough'), once(transitionVideo, 'error'), wait(1600)]);
+    experience.classList.remove('is-loading', 'content-revealing', 'mask-revealing');
+    experience.classList.add('is-transitioning');
+
+    let useVideo = transitionVideo.readyState >= 2 && !transitionVideo.error;
+    if (useVideo){
+      transitionVideo.currentTime = 0;
+      transitionVideo.playbackRate = 1.3;
+      try { await Promise.race([transitionVideo.play(), wait(1500).then(() => { throw new Error('play timeout'); })]); }
+      catch (err) { useVideo = false; transitionVideo.pause(); }
+    }
+    canvasOpacity = 1;
+    transitionActive = true;
+
+    let arrival;
+    if (useVideo){
+      transitionProc = null;
+      const cap = ((transitionVideo.duration || 6) / 1.3) * 1000 + 2500;
+      arrival = Promise.race([once(transitionVideo, 'ended'), wait(cap)]);
+    } else {
+      transitionProc = { kind:next, t:.2 };
+      arrival = animateValue(v => { transitionProc.t = .2 + .8 * v; warp = Math.sin(v * Math.PI) * 1.1; }, 2900);
+    }
+    await animateValue(v => expansion = v, 1100);
+    await arrival;
+    warp = 0;
+
+    if (useVideo){
+      sctx.clearRect(0, 0, innerWidth, innerHeight);
+      drawCover(sctx, transitionVideo);
+      frozen = 'canvas';
+    } else {
+      frozen = { live:next };
+    }
+
+    current = next;
+    experience.classList.add('is-committing');
+    render();
+    await nextFrame(); await nextFrame();
+    transitionActive = false; transitionProc = null;
+    expansion = 0; maskScale = 0; canvasOpacity = 1;
+    experience.classList.remove('is-transitioning', 'is-committing');
+    const maskReveal = revealMask();
+    setTimeout(revealPlanetContent, 100);
+    await maskReveal;
+    await wait(450);
+    transitionVideo.removeAttribute('src'); transitionVideo.load();
+    busy = false;
+  } catch (err) {
+    transitionActive = false; transitionProc = null; warp = 0;
+    expansion = 0; maskScale = 1; canvasOpacity = 1;
+    experience.classList.remove('is-loading', 'is-transitioning', 'is-committing');
+    busy = false;
+  }
+  document.body.classList.remove('is-busy');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PRELOADER
+   ══════════════════════════════════════════════════════════════ */
+function runPreloader(){
+  const video = $('preloader-video'), value = $('preloader-value'), count = $('preloader-count'), logo = $('floating-logo');
+  let done = false, raf = 0, fell = false;
+
+  const finish = () => {
+    if (done) return;
+    done = true;
+    cancelAnimationFrame(raf);
+    value.textContent = '100';
+    count.classList.add('is-leaving');
+    logo.classList.add('is-docked');
+    preloader.classList.add('is-background');
+    document.body.classList.add('preload-complete');
+    startExperience();
+    setTimeout(() => count.remove(), 750);
+    setTimeout(() => logo.classList.add('is-settled'), 2000);
+  };
+  const tick = () => {
+    if (video.duration) value.textContent = Math.round(video.currentTime / video.duration * 100);
+    raf = requestAnimationFrame(tick);
+  };
+  // the clip cannot be reached: fly in on the drawn Mars instead, same 3 s
+  const fallback = () => {
+    if (done || fell) return;
+    fell = true;
+    cancelAnimationFrame(raf);
+    try { video.pause(); } catch (e) {}
+    preProc = true;
+    preloader.classList.add('is-procedural');
+    animateValue(v => {
+      value.textContent = Math.round(v * 100);
+      preT = easeOut(v);
+      warp = (1 - v) * 1.2;
+    }, 3000, t => t).then(() => { warp = 0; finish(); });
+  };
+  const start = () => {
+    if (done || fell) return;
+    clearTimeout(timer);
+    video.playbackRate = Math.max(.25, video.duration / 3);
+    const p = video.play();
+    if (p && p.then) p.then(() => { raf = requestAnimationFrame(tick); }).catch(finish);
+    else raf = requestAnimationFrame(tick);
+  };
+  video.addEventListener('ended', finish, { once:true });
+  video.addEventListener('error', fallback, { once:true });
+  const timer = setTimeout(() => { if (video.readyState < 1) fallback(); }, 2600);
+  setTimeout(() => { if (!done && !fell) finish(); }, 12000);   // never hang on a stalled stream
+  if (video.readyState >= 1) start(); else video.addEventListener('loadedmetadata', start, { once:true });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   POINTER, TILT, CURSOR
+   ══════════════════════════════════════════════════════════════ */
+let curX = -100, curY = -100, tx = -100, ty = -100;
+addEventListener('pointermove', e => {
+  tx = e.clientX; ty = e.clientY;
+  if (e.pointerType === 'mouse'){
+    cursor.classList.add('is-visible');
+    ptrX = e.clientX / innerWidth - .5; ptrY = e.clientY / innerHeight - .5;
+    if (!busy){
+      targetY = (e.clientX / innerWidth - .5) * 37.4;
+      targetX = (e.clientY / innerHeight - .5) * -33;
+    }
+  }
+}, { passive:true });
+document.addEventListener('pointerleave', () => { targetX = 0; targetY = 0; ptrX = 0; ptrY = 0; });
+document.addEventListener('mouseleave', () => cursor.classList.remove('is-visible'));
+addEventListener('pointerdown', () => cursor.classList.add('is-press'));
+addEventListener('pointerup', () => cursor.classList.remove('is-press'));
+
+portal.addEventListener('pointerenter', () => {
+  portalHover = true;
+  cursorLabel.textContent = current === 'venus' ? 'Last stop' : 'Enter';
+  cursor.classList.add('is-enter');
+});
+portal.addEventListener('pointerleave', () => { portalHover = false; cursor.classList.remove('is-enter'); });
+portal.addEventListener('click', travel);
+
+document.addEventListener('pointerover', e => {
+  const t = e.target.closest && e.target.closest('[data-cursor]');
+  if (t){ cursorLabel.textContent = t.dataset.cursor; cursor.classList.add('is-enter'); }
+});
+document.addEventListener('pointerout', e => {
+  const t = e.target.closest && e.target.closest('[data-cursor]');
+  if (t && !t.contains(e.relatedTarget)) cursor.classList.remove('is-enter');
+});
+
+function cursorLoop(){
+  curX += (tx - curX) * .2; curY += (ty - curY) * .2;
+  cursor.style.transform = `translate3d(${curX.toFixed(2)}px,${curY.toFixed(2)}px,0)`;
+  cursorDot.style.translate = `${(tx - curX).toFixed(2)}px ${(ty - curY).toFixed(2)}px`;
+  requestAnimationFrame(cursorLoop);
+}
+
+/* magnetic buttons */
+document.querySelectorAll('.menu, .pill-btn').forEach(el => {
+  el.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    const r = el.getBoundingClientRect();
+    el.style.translate = `${((e.clientX - r.left - r.width/2) * .25).toFixed(1)}px ${((e.clientY - r.top - r.height/2) * .35).toFixed(1)}px`;
+  });
+  el.addEventListener('pointerleave', () => { el.style.translate = ''; });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   NAVIGATION + MENU
+   ══════════════════════════════════════════════════════════════ */
+const menuBtn = document.querySelector('.menu'), menuOverlay = $('menu-overlay');
+function setMenu(open){
+  document.body.classList.toggle('menu-open', open);
+  menuBtn.textContent = open ? 'Close' : 'Menu';
+  menuBtn.setAttribute('aria-expanded', String(open));
+  menuOverlay.setAttribute('aria-hidden', String(!open));
+}
+menuBtn.addEventListener('click', () => setMenu(!document.body.classList.contains('menu-open')));
+addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+
+function goTo(hash){
+  if (hash === '#top') return scrollToY(0);
+  const el = document.querySelector(hash);
+  if (el) return scrollToY(el.offsetTop);
+}
+document.querySelectorAll('.nav a, .menu-links a').forEach(a => a.addEventListener('click', e => {
+  e.preventDefault();
+  const wasOpen = document.body.classList.contains('menu-open');
+  setMenu(false);
+  setTimeout(() => goTo(a.getAttribute('href')), wasOpen ? 350 : 0);
+}));
+
+/* ══════════════════════════════════════════════════════════════
+   SCROLL-DRIVEN EFFECTS
+   ══════════════════════════════════════════════════════════════ */
+const progress = $('progress');
+const navLinks = [...document.querySelectorAll('.nav a')];
+const about = $('about'), explore = $('explore'), planetsSec = $('planets');
+const scrub = document.querySelector('[data-scrub]');
+const aboutOrbits = document.querySelector('.about-orbits');
+const track = $('explore-track'), routes = [...document.querySelectorAll('.route')];
+const exploreCount = $('explore-count'), exploreMeter = document.querySelector('.explore-meter');
+let lastScroll = 0, scrollVel = 0, lastHp = -1;
+
+// split the statement into words for the scroll scrub
+(function splitWords(){
+  const words = [];
+  scrub.childNodes.forEach(n => {
+    const hl = n.nodeType === 1;
+    n.textContent.split(/(\s+)/).forEach(part => {
+      if (!part) return;
+      if (/^\s+$/.test(part)) words.push(document.createTextNode(part));
+      else { const s = document.createElement('span'); s.className = 'w' + (hl ? ' hl' : ''); s.textContent = part; words.push(s); }
+    });
+  });
+  scrub.textContent = '';
+  words.forEach(w => scrub.appendChild(w));
+})();
+const scrubWords = [...scrub.querySelectorAll('.w')];
+
+function updateScroll(dt){
+  const st = site.scrollTop, H = innerHeight;
+  scrollVel += ((st - lastScroll) - scrollVel) * .2; lastScroll = st;
+  const max = site.scrollHeight - site.clientHeight;
+  progress.style.transform = `scaleX(${max > 0 ? (st / max).toFixed(4) : 0})`;
+  header.classList.toggle('is-scrolled', st > 40);
+
+  const hp = clamp(st / experience.offsetHeight);
+  if (Math.abs(hp - lastHp) > .0005){ experience.style.setProperty('--hp', hp.toFixed(4)); lastHp = hp; }
+
+  // nav highlight
+  let active = 0;
+  [about, explore, planetsSec].forEach((s, i) => { if (s.offsetTop - H * .45 <= st) active = i; });
+  navLinks.forEach((a, i) => a.classList.toggle('active', i === active));
+
+  // about: word scrub + orbit spin
+  const ar = about.getBoundingClientRect();
+  if (ar.bottom > 0 && ar.top < H){
+    const sr = scrub.getBoundingClientRect();
+    const p = clamp((H * .88 - sr.top) / (sr.height + H * .4));
+    const lit = Math.round(p * scrubWords.length);
+    scrubWords.forEach((w, i) => w.classList.toggle('on', i < lit));
+    aboutOrbits.style.setProperty('--ap', ((H - ar.top) / (ar.height + H)).toFixed(4));
+  }
+
+  // explore: vertical scroll drives the horizontal track
+  const er = explore.getBoundingClientRect();
+  if (er.bottom > 0 && er.top < H){
+    const ep = clamp(-er.top / (er.height - H));
+    const dist = Math.max(0, track.scrollWidth - innerWidth);
+    track.style.transform = `translate3d(${(-ep * dist).toFixed(1)}px,0,0)`;
+    exploreMeter.style.setProperty('--ep', ep.toFixed(4));
+    exploreCount.textContent = `0${Math.min(4, Math.floor(ep * 3.999) + 1)} / 04`;
+    routes.forEach(r => {
+      const rr = r.getBoundingClientRect();
+      const off = (rr.left + rr.width / 2 - innerWidth / 2) / innerWidth;
+      r.style.setProperty('--vx', (off * -110).toFixed(1) + 'px');
+      r.style.setProperty('--gx', (off * 260).toFixed(1) + 'px');
+    });
+  }
+  return st;
+}
+
+/* reveal on scroll + counters */
+const counted = new WeakSet();
+function countUp(el){
+  if (counted.has(el)) return; counted.add(el);
+  const target = parseFloat(el.dataset.count), dec = +el.dataset.dec || 0;
+  if (reduceMotion){ el.textContent = target.toFixed(dec); return; }
+  animateValue(v => { el.textContent = (target * v).toFixed(dec); }, 1800, easeOut);
+}
+const io = new IntersectionObserver(entries => entries.forEach(en => {
+  if (!en.isIntersecting) return;
+  en.target.classList.add('is-in');
+  en.target.querySelectorAll('[data-count]').forEach(countUp);
+  if (en.target.dataset.count) countUp(en.target);
+  io.unobserve(en.target);
+}), { root:site, threshold:.18 });
+document.querySelectorAll('.reveal, .stat').forEach(el => io.observe(el));
+
+/* explore: tilt + buttons */
+routes.forEach(r => {
+  const vis = r.querySelector('.route-visual');
+  vis.addEventListener('pointermove', e => {
+    const b = vis.getBoundingClientRect();
+    vis.style.setProperty('--ry', (((e.clientX - b.left) / b.width - .5) * 16).toFixed(2) + 'deg');
+    vis.style.setProperty('--rx', (((e.clientY - b.top) / b.height - .5) * -14).toFixed(2) + 'deg');
+  });
+  vis.addEventListener('pointerleave', () => { vis.style.setProperty('--rx', '0deg'); vis.style.setProperty('--ry', '0deg'); });
+  r.querySelector('.route-go').addEventListener('click', async () => {
+    const jump = r.classList.contains('is-next');
+    await scrollToY(0);
+    if (jump) travel();
+  });
+});
+$('finale-go').addEventListener('click', async () => {
+  await scrollToY(0);
+  if (current !== 'venus') travel();
+});
+
+function updatePageState(){
+  const ci = ROUTE.indexOf(current);
+  routes.forEach(r => {
+    const k = r.dataset.key, i = ROUTE.indexOf(k), chip = r.querySelector('.chip'), btn = r.querySelector('.route-go');
+    let label;
+    if (k === 'mercury') label = current === 'venus' ? 'In the portal' : 'Final view';
+    else if (i === ci) label = 'You are here';
+    else if (i === ci + 1) label = 'Next jump';
+    else if (i < ci) label = 'Visited';
+    else label = `${i - ci} jumps away`;
+    chip.textContent = label;
+    r.classList.toggle('is-current', i === ci);
+    r.classList.toggle('is-next', i === ci + 1);
+    btn.firstChild.textContent = i === ci + 1 ? `Jump to ${states[k].name} ` : 'Back to the portal ';
+  });
+  const s = states[current];
+  $('menu-planet').textContent = s.name;
+  $('finale-copy').textContent = current === 'venus'
+    ? 'You have reached Venus, the end of the route. Mercury hangs in the portal, close to the Sun.'
+    : `You are orbiting ${s.name}. ${s.next} is one click away through the portal.`;
+  $('finale-go').firstChild.textContent = current === 'venus' ? 'Back to the portal ' : `Jump to ${s.next} `;
+  ORB.forEach((o, i) => orbitRows[i] && orbitRows[i].classList.toggle('is-here', o.name === s.name));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   ORBIT MAP
+   ══════════════════════════════════════════════════════════════ */
+const ORB = [
+  { name:'Mercury', au:.387,  days:87.97,  size:3.2, c:['#d6d0c8','#6d6861'] },
+  { name:'Venus',   au:.723,  days:224.7,  size:5.4, c:['#f6dfab','#a8804a'] },
+  { name:'Earth',   au:1,     days:365.26, size:5.7, c:['#9fd2ff','#1f5ea8'] },
+  { name:'Mars',    au:1.524, days:686.98, size:4.3, c:['#f7a070','#8c3a1c'] },
+  { name:'Jupiter', au:5.203, days:4332.6, size:12,  c:['#f1d6b0','#9a6d45'] },
+  { name:'Saturn',  au:9.537, days:10759,  size:10,  c:['#f5e6bb','#a88a55'], ring:true },
+  { name:'Uranus',  au:19.19, days:30687,  size:7.5, c:['#d4f6f8','#5aa7b3'] },
+  { name:'Neptune', au:30.07, days:60190,  size:7.3, c:['#a4bfff','#2c4bb0'] }
+];
+ORB.forEach((o, i) => { o.ang = hash(i, 9, 3, 1) * Math.PI * 2; o.x = 0; o.y = 0; o.r = 0; });
+const orbitCanvas = $('orbit-canvas'), octx = orbitCanvas.getContext('2d'), orbitTip = $('orbit-tip');
+const orbitList = $('orbit-list');
+orbitList.innerHTML = ORB.map((o, i) =>
+  `<li><button class="orbit-row" type="button" data-i="${i}" data-cursor="${o.name}">` +
+  `<span class="dot" style="background:${o.c[0]}"></span><span class="nm">${o.name}</span>` +
+  `<span class="au">${o.au.toFixed(2)} AU</span><span class="yr">${Math.round(o.days).toLocaleString('en-US')} d</span></button></li>`).join('');
+const orbitRows = [...orbitList.querySelectorAll('.orbit-row')];
+let orbitHover = -1, listHover = -1, orbitPick = -1;
+orbitRows.forEach(b => {
+  const i = +b.dataset.i;
+  b.addEventListener('pointerenter', () => listHover = i);
+  b.addEventListener('pointerleave', () => listHover = -1);
+  b.addEventListener('focus', () => listHover = i);
+  b.addEventListener('blur', () => listHover = -1);
+  b.addEventListener('click', () => orbitPick = i);
+});
+function pickPlanet(e){
+  const r = orbitCanvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  let best = -1, bd = 26;
+  ORB.forEach((o, i) => { const d = Math.hypot(o.x - x, o.y - y) - o.r; if (d < bd){ bd = d; best = i; } });
+  return best;
+}
+orbitCanvas.addEventListener('pointermove', e => { orbitHover = pickPlanet(e); });
+orbitCanvas.addEventListener('pointerleave', () => orbitHover = -1);
+orbitCanvas.addEventListener('click', e => { const p = pickPlanet(e); if (p >= 0) orbitPick = p; });
+
+function drawOrbit(now, dt){
+  const w = orbitCanvas.clientWidth, h = orbitCanvas.clientHeight;
+  if (!w || !h) return;
+  const d = Math.min(devicePixelRatio || 1, 2);
+  if (orbitCanvas.width !== Math.round(w * d)){ orbitCanvas.width = Math.round(w * d); orbitCanvas.height = Math.round(h * d); }
+  octx.setTransform(d, 0, 0, d, 0, 0);
+  octx.clearRect(0, 0, w, h);
+  const pr = planetsSec.getBoundingClientRect();
+  const sp = clamp((innerHeight - pr.top) / (pr.height + innerHeight));
+  const ky = .36 + sp * .4;
+  const cx = w / 2, cy = h / 2, R = w / 2 * .95, k = R / 330;
+  const hereIdx = ORB.findIndex(o => o.name === states[current].name);
+  const sel = orbitHover >= 0 ? orbitHover : listHover >= 0 ? listHover : orbitPick >= 0 ? orbitPick : hereIdx;
+
+  // sun
+  const sg = octx.createRadialGradient(cx, cy, 0, cx, cy, R * .22);
+  sg.addColorStop(0, 'rgba(255,240,200,1)'); sg.addColorStop(.12, 'rgba(255,196,110,.95)');
+  sg.addColorStop(.35, 'rgba(255,140,50,.25)'); sg.addColorStop(1, 'rgba(255,120,40,0)');
+  octx.fillStyle = sg; octx.beginPath(); octx.arc(cx, cy, R * .22, 0, Math.PI * 2); octx.fill();
+
+  ORB.forEach((o, i) => {
+    if (!reduceMotion) o.ang += dt / 1000 * 30 / o.days * Math.PI * 2;
+    const rr = R * (.14 + .86 * Math.pow(o.au / 30.07, .45));
+    octx.beginPath(); octx.ellipse(cx, cy, rr, rr * ky, 0, 0, Math.PI * 2);
+    octx.strokeStyle = i === sel ? 'rgba(244,239,232,.55)' : 'rgba(244,239,232,.12)';
+    octx.lineWidth = i === sel ? 1.2 : 1;
+    octx.stroke();
+    o.x = cx + Math.cos(o.ang) * rr; o.y = cy + Math.sin(o.ang) * rr * ky; o.r = o.size * k * (.85 + .3 * ((o.y - cy) / (R * ky) + 1) / 2);
+  });
+  [...ORB].sort((a, b) => a.y - b.y).forEach(o => {
+    const i = ORB.indexOf(o);
+    if (o.ring){
+      octx.beginPath(); octx.ellipse(o.x, o.y, o.r * 2.1, o.r * 2.1 * ky * .6, -.3, 0, Math.PI * 2);
+      octx.strokeStyle = 'rgba(240,222,180,.55)'; octx.lineWidth = o.r * .35; octx.stroke();
+    }
+    const g = octx.createRadialGradient(o.x - o.r * .4, o.y - o.r * .4, o.r * .1, o.x, o.y, o.r);
+    g.addColorStop(0, o.c[0]); g.addColorStop(1, o.c[1]);
+    octx.fillStyle = g; octx.beginPath(); octx.arc(o.x, o.y, o.r, 0, Math.PI * 2); octx.fill();
+    if (i === hereIdx){
+      const pulse = (now % 1800) / 1800;
+      octx.beginPath(); octx.arc(o.x, o.y, o.r + 4 + pulse * 16, 0, Math.PI * 2);
+      octx.strokeStyle = `rgba(255,255,255,${(1 - pulse) * .7})`; octx.lineWidth = 1; octx.stroke();
+    }
+    if (i === sel){
+      octx.beginPath(); octx.arc(o.x, o.y, o.r + 5, 0, Math.PI * 2);
+      octx.strokeStyle = 'rgba(255,255,255,.9)'; octx.lineWidth = 1.2; octx.stroke();
+    }
+  });
+
+  const o = ORB[sel];
+  orbitTip.innerHTML = `<strong>${o.name}</strong>` + (sel === hereIdx ? '<em>You are here</em><br>' : '') +
+    `<span>${o.au.toFixed(2)} AU · ${Math.round(o.days).toLocaleString('en-US')} days</span>`;
+  const tipX = Math.min(w - orbitTip.offsetWidth - 4, Math.max(4, o.x + o.r + 12));
+  const tipY = Math.min(h - orbitTip.offsetHeight - 4, Math.max(4, o.y - orbitTip.offsetHeight / 2));
+  orbitTip.style.transform = `translate(${tipX.toFixed(1)}px,${tipY.toFixed(1)}px)`;
+  orbitRows.forEach((b, i) => b.classList.toggle('is-active', i === sel));
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION CANVASES + MARQUEE
+   ══════════════════════════════════════════════════════════════ */
+const routeCanvases = [...document.querySelectorAll('.route-planet')].map(c => ({ c, g:c.getContext('2d'), kind:c.dataset.kind }));
+const marquee = $('marquee-track');
+(function buildMarquee(){
+  const names = ['Mercury','Venus','Earth','Mars','Jupiter','Saturn','Uranus','Neptune'];
+  const one = names.map(n => `<span>${n}<i></i></span>`).join('');
+  marquee.innerHTML = one + one;
+})();
+let marqueeX = 0;
+function visible(el){ const r = el.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }
+
+function drawSections(now, dt){
+  if (visible(explore)){
+    const d = Math.min(devicePixelRatio || 1, 2);
+    routeCanvases.forEach(({ c, g, kind }, i) => {
+      const b = c.getBoundingClientRect();
+      if (b.right < -50 || b.left > innerWidth + 50 || !b.width) return;
+      const w = Math.round(b.width * d);
+      if (c.width !== w){ c.width = w; c.height = w; }
+      g.setTransform(d, 0, 0, d, 0, 0);
+      g.clearRect(0, 0, b.width, b.width);
+      drawPlanet(g, kind, b.width / 2, b.width / 2, b.width * .36, now * .00003 + i);
+    });
+  }
+  if (visible(planetsSec)) drawOrbit(now, dt);
+  const fin = marquee.parentElement;
+  if (visible(fin)){
+    const half = marquee.scrollWidth / 2;
+    if (!reduceMotion) marqueeX -= dt * .06 + Math.abs(scrollVel) * .6;
+    if (half) marqueeX = ((marqueeX % half) - half) % half;
+    const skew = clamp(scrollVel * -.25, -8, 8);
+    marquee.style.transform = `translate3d(${marqueeX.toFixed(1)}px,0,0) skewX(${skew.toFixed(2)}deg)`;
+  }
+}
+
+/* film grain */
+(function grain(){
+  const c = document.createElement('canvas'); c.width = c.height = 160;
+  const g = c.getContext('2d'), img = g.createImageData(160, 160);
+  for (let i = 0; i < img.data.length; i += 4){
+    const v = Math.random() * 255; img.data[i] = img.data[i+1] = img.data[i+2] = v; img.data[i+3] = 255;
+  }
+  g.putImageData(img, 0, 0);
+  $('grain').style.backgroundImage = `url(${c.toDataURL()})`;
+})();
+
+addEventListener('resize', () => { resizeCanvas(); fitTitle(); });
+
+/* ══════════════════════════════════════════════════════════════
+   BOOT
+   ══════════════════════════════════════════════════════════════ */
+const LOGO_FALLBACK = 'data:image/svg+xml,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60"><circle cx="30" cy="30" r="13" fill="#fff"/>' +
+  '<ellipse cx="30" cy="30" rx="27" ry="9" fill="none" stroke="#fff" stroke-width="2.4" transform="rotate(-24 30 30)"/></svg>');
+(function logoGuard(){
+  const logo = $('floating-logo');
+  const swap = () => { if (logo.src !== LOGO_FALLBACK) logo.src = LOGO_FALLBACK; };
+  logo.addEventListener('error', swap);
+  if (logo.complete && !logo.naturalWidth) swap();
+})();
+buildTextures();
+document.querySelectorAll('.background').forEach(v => { try { v.pause(); v.currentTime = 0; } catch (e) {} });
+resizeCanvas();
+render();
+requestAnimationFrame(draw);
+requestAnimationFrame(cursorLoop);
+runPreloader();
+})();
+</script>
+</body>
+</html>
