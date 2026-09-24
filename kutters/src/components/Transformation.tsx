@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { bg1, bg2 } from '../constants';
+import { heroBefore, heroAfter } from '../constants';
 import { useSectionProgress } from '../hooks/useScroll';
 
 const STATS = [
@@ -79,11 +79,11 @@ export default function Transformation() {
                 borderRadius: `${48 - Math.min(1, p * 3) * 20}px`,
               }}
             >
-              <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: bg1, transform: `scale(${1.15 - p * 0.15})` }} />
+              <div className="absolute inset-0 bg-contain bg-bottom bg-no-repeat bg-black origin-bottom" style={{ backgroundImage: `url("${heroBefore}")`, transform: `scale(${1.15 - p * 0.15})` }} />
               <div
-                className="absolute inset-0 bg-cover bg-center"
+                className="absolute inset-0 bg-contain bg-bottom bg-no-repeat bg-black origin-bottom"
                 style={{
-                  backgroundImage: bg2,
+                  backgroundImage: `url("${heroAfter}")`,
                   transform: `scale(${1.15 - p * 0.15})`,
                   clipPath: `inset(0 ${100 - edge}% 0 0)`,
                 }}
